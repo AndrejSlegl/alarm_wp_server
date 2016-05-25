@@ -1,0 +1,53 @@
+﻿<Page
+    x:Class="AlarmServer.MainPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AlarmServer"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Page.Resources>
+        <local:BoolConverter x:Key="BoolConverter" TrueValue="True" FalseValue="False" />
+        <local:BoolConverter x:Key="BoolToColorConverter" TrueValue="Green" FalseValue="Red" />
+        <local:BoolConverter x:Key="StopAlarmBackgroundConverter" TrueValue="Red" FalseValue="Black" />
+        <local:BoolConverter x:Key="ToggleAlarmBackgroundConverter" TrueValue="Green" FalseValue="Red" />
+    </Page.Resources>
+
+    <Page.BottomAppBar>
+        <CommandBar>
+            <AppBarButton Icon="Bookmarks" Label="console" x:Name="OpenConsoleBtn" Click="OpenConsoleBtn_Click" />
+            <AppBarButton Icon="Next" Label="restart" x:Name="RestartServerBtn" Click="RestartServerBtn_Click" />
+        </CommandBar>
+    </Page.BottomAppBar>
+
+    <Grid Margin="0,20,0,0">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <MediaElement Visibility="Collapsed" AutoPlay="True" IsLooping="True" Source="{Binding AlarmSoundSource}" />
+
+        <StackPanel>
+            <ItemsControl ItemsSource="{Binding Parameters}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="{Binding ParameterName}" Style="{StaticResource TextBlockStyle}" FontSize="18" Width="150" Foreground="{Binding BoolValue, Converter={StaticResource BoolToColorConverter}}" />
+                            <TextBlock Text="{Binding Value}" Style="{StaticResource TextBlockStyle}" FontSize="18" Foreground="{Binding BoolValue, Converter={StaticResource BoolToColorConverter}}" />
+                        </StackPanel>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+            <Button Margin="0,20,0,0" Content="STOP ALARM" x:Name="StopButton" Click="StopButton_Click" Height="100" HorizontalAlignment="Stretch" IsEnabled="{Binding AlarmSoundSource, Converter={StaticResource BoolConverter}}" Background="{Binding AlarmSoundSource, Converter={StaticResource StopAlarmBackgroundConverter}}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="2" Margin="0,0,0,40">
+            <Button Content="{Binding ToggleAlarmText}" x:Name="AlarmToggleButton" Click="AlarmToggleButton_Click" Height="70" Width="150" HorizontalAlignment="Center" Background="{Binding IsAlarmEnabled, Converter={StaticResource ToggleAlarmBackgroundConverter}}" />
+        </StackPanel>
+    </Grid>
+</Page>

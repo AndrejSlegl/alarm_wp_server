@@ -1,0 +1,21 @@
+﻿<Application
+    x:Class="AlarmServer.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AlarmServer">
+
+    <Application.Resources>
+        <local:EventTypeToBrushConverter x:Key="EventTypeToBrushConverter">
+            <local:EventTypeToBrushConverter.Brushes>
+                <SolidColorBrush Color="White" local:Ext.EventType="Message" />
+                <SolidColorBrush Color="Red" local:Ext.EventType="Exception" />
+                <SolidColorBrush Color="Green" local:Ext.EventType="NewConnection" />
+            </local:EventTypeToBrushConverter.Brushes>
+        </local:EventTypeToBrushConverter>
+
+        <Style x:Key="TextBlockStyle" TargetType="TextBlock">
+            <Setter Property="FontFamily" Value="Consolas" />
+            <Setter Property="FontSize" Value="16" />
+        </Style>
+    </Application.Resources>
+</Application>
