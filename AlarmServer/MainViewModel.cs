@@ -21,6 +21,7 @@ namespace AlarmServer
 
         public SensorValueModel Rssi { get; }
         public SensorValueModel Sector0 { get; }
+        public SensorValueModel Movement0 { get; }
         public SensorValueModel DisconnectCount { get; }
 
         public bool IsConnected { get { return isConnected; } private set { if (isConnected == value) return; isConnected = value; RaisePropertyChanged(nameof(IsConnected)); } }
@@ -37,6 +38,7 @@ namespace AlarmServer
 
             Rssi = new SensorValueModel("rssi");
             Sector0 = new SensorValueModel("sector0");
+            Movement0 = new SensorValueModel("movement0", true);
             DisconnectCount = new SensorValueModel("disconnect count", val => false);
             DisconnectCount.Update(0);
 
@@ -44,7 +46,7 @@ namespace AlarmServer
             {
                 Rssi,
                 Sector0,
-                //DisconnectCount
+                Movement0
             };
         }
 
@@ -80,12 +82,20 @@ namespace AlarmServer
         {
             var parameter = GetParameter(valueChangeEvent.Name);
 
+            bool sector0Value = Sector0.BoolValue;
+            bool movement0Value = Movement0.BoolValue;
+
             if (parameter != null)
                 parameter.Update(valueChangeEvent.Value);
-            //else
+
             AddEvent((EventModel)valueChangeEvent);
 
-            if (Sector0.BoolValue == false)
+            if (sector0Value != Sector0.BoolValue && Sector0.BoolValue == false)
+            {
+                StartAlarmSound();
+            }
+
+            if (movement0Value != Movement0.BoolValue && Movement0.BoolValue == true)
             {
                 StartAlarmSound();
             }
@@ -128,12 +138,20 @@ namespace AlarmServer
 
         public void StartAlarmSound()
         {
-            if (AlarmSoundSource == null && IsAlarmEnabled)
+            if (!IsAlarmEnabled)
+                return;
+
+            if (AlarmSoundSource == null)
             {
                 stopAlarmTimer.Tick -= StopAlarmTimer_Tick;
                 stopAlarmTimer.Tick += StopAlarmTimer_Tick;
                 stopAlarmTimer.Start();
                 AlarmSoundSource = alarmSoundUri;
+            }
+            else
+            {
+                stopAlarmTimer.Stop();
+                stopAlarmTimer.Start();
             }
         }
 

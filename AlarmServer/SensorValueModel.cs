@@ -15,18 +15,35 @@ namespace AlarmServer
         string value = "-";
         string minValue = "-";
         string maxValue = "-";
+        UIColorValue uiColor;
+        bool invertColor;
         Func<int, bool> boolValueSetter;
 
         public string ParameterName { get; }
-        public string Value { get { return value; } private set { if (value == this.value) return; this.value = value; RaisePropertyChanged(nameof(Value)); } }
+        public string Value { get { return value; } private set { if (value == this.value) return; this.value = value; RaisePropertyChanged(nameof(Value)); UpdateUIColorValue(); } }
         public string MinValue { get { return minValue; } private set { if (minValue == value) return; minValue = value; RaisePropertyChanged(nameof(MinValue)); } }
         public string MaxValue { get { return maxValue; } private set { if (maxValue == value) return; maxValue = value; RaisePropertyChanged(nameof(MaxValue)); } }
 
-        public bool BoolValue { get { return boolValue; } private set { if (boolValue == value) return; boolValue = value; RaisePropertyChanged(nameof(BoolValue)); } }
+        public bool BoolValue
+        {
+            get { return boolValue; }
+            private set
+            {
+                if (boolValue == value)
+                    return;
 
-        public SensorValueModel(string parameterName) : 
+                boolValue = value;
+                RaisePropertyChanged(nameof(BoolValue));
+                UpdateUIColorValue();
+            }
+        }
+
+        public UIColorValue UIColor { get { return uiColor; } private set { if (uiColor == value) return; uiColor = value; RaisePropertyChanged(nameof(UIColor)); } }
+
+        public SensorValueModel(string parameterName, bool invertColor = false) : 
             this(parameterName, DefaultBoolValueSetter)
         {
+            this.invertColor = invertColor;
         }
 
         public SensorValueModel(string parameterName, Func<int, bool> boolValueSetter)
@@ -68,6 +85,18 @@ namespace AlarmServer
         public void Increment()
         {
             Update(v + 1);
+        }
+
+        void UpdateUIColorValue()
+        {
+            if (value == "-")
+            {
+                UIColor = UIColorValue.None;
+                return;
+            }
+
+            bool val = invertColor ? !boolValue : boolValue;
+            UIColor = val ? UIColorValue.Green : UIColorValue.Red;
         }
 
         static bool DefaultBoolValueSetter(int val)

@@ -38,7 +38,7 @@ namespace AlarmServer
         readonly List<StreamSocket> openedSockets = new List<StreamSocket>();
         StreamSocketListener listener;
 
-        StreamWriter streamWriter;
+        readonly List<StreamWriter> streamWriters = new List<StreamWriter>();
         Popup openedPopup;
         int clientPingInterval = 60;
         DateTime? lastResponseTime = null;
@@ -171,7 +171,7 @@ namespace AlarmServer
 
             try
             {
-                await SendResponseAsync(streamWriter, statusQuery);
+                await SendMessageAsync(streamWriter, statusQuery);
                 success = true;
             }
             catch (Exception ex)
@@ -182,7 +182,7 @@ namespace AlarmServer
 
             if (success)
             {
-                Dispatch(() => this.streamWriter = streamWriter);
+                Dispatch(() => streamWriters.Add(streamWriter));
 
                 while (true)
                 {
@@ -222,8 +222,7 @@ namespace AlarmServer
 
             Dispatch(() => 
             {
-                if (this.streamWriter == streamWriter)
-                    this.streamWriter = null;
+                streamWriters.Remove(streamWriter);
                 
                 model.ClientDisconnected();
             });
@@ -264,7 +263,7 @@ namespace AlarmServer
             return new ClientMessage(valueChangeEvents);
         }
 
-        async Task SendResponseAsync(StreamWriter streamWriter, string message)
+        async Task SendMessageAsync(StreamWriter streamWriter, string message)
         {
             await streamWriter.WriteLineAsync(message);
             await streamWriter.FlushAsync();
@@ -272,11 +271,11 @@ namespace AlarmServer
 
         public async void QueryClientStatus()
         {
-            if (streamWriter != null)
+            foreach (var streamWriter in streamWriters)
             {
                 try
                 {
-                    await SendResponseAsync(streamWriter, statusQuery);
+                    await SendMessageAsync(streamWriter, statusQuery);
                 }
                 catch (Exception ex)
                 {

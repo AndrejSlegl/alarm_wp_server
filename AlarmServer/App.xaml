@@ -13,6 +13,14 @@
             </local:EventTypeToBrushConverter.Brushes>
         </local:EventTypeToBrushConverter>
 
+        <local:UIColorToBrushConverter x:Key="UIColorToBrushConverter">
+            <local:UIColorToBrushConverter.Brushes>
+                <SolidColorBrush Color="White" local:Ext.UIColor="None" />
+                <SolidColorBrush Color="Green" local:Ext.UIColor="Green" />
+                <SolidColorBrush Color="Red" local:Ext.UIColor="Red" />
+            </local:UIColorToBrushConverter.Brushes>
+        </local:UIColorToBrushConverter>
+
         <Style x:Key="TextBlockStyle" TargetType="TextBlock">
             <Setter Property="FontFamily" Value="Consolas" />
             <Setter Property="FontSize" Value="16" />

@@ -36,8 +36,8 @@
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="{Binding ParameterName}" Style="{StaticResource TextBlockStyle}" FontSize="18" Width="150" Foreground="{Binding BoolValue, Converter={StaticResource BoolToColorConverter}}" />
-                            <TextBlock Text="{Binding Value}" Style="{StaticResource TextBlockStyle}" FontSize="18" Foreground="{Binding BoolValue, Converter={StaticResource BoolToColorConverter}}" />
+                            <TextBlock Text="{Binding ParameterName}" Style="{StaticResource TextBlockStyle}" FontSize="18" Width="160" Foreground="{Binding UIColor, Converter={StaticResource UIColorToBrushConverter}}" />
+                            <TextBlock Text="{Binding Value}" Style="{StaticResource TextBlockStyle}" FontSize="18" Foreground="{Binding UIColor, Converter={StaticResource UIColorToBrushConverter}}" />
                         </StackPanel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

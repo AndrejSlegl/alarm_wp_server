@@ -103,6 +103,8 @@
     <Compile Include="ModelBase.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SensorValueModel.cs" />
+    <Compile Include="UIColorToBrushConverter.cs" />
+    <Compile Include="UIColorValue.cs" />
     <Compile Include="ValueChangeEvent.cs" />
   </ItemGroup>
   <ItemGroup>

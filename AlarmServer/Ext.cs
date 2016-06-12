@@ -21,5 +21,18 @@ namespace AlarmServer
         {
             return (EventType)obj.GetValue(EventTypeProperty);
         }
+
+        public static readonly DependencyProperty UIColorProperty = DependencyProperty.RegisterAttached("UIColor", typeof(UIColorValue), typeof(Ext),
+            new PropertyMetadata(UIColorValue.None));
+
+        public static void SetUIColor(DependencyObject obj, UIColorValue value)
+        {
+            obj.SetValue(UIColorProperty, value);
+        }
+
+        public static UIColorValue GetUIColor(DependencyObject obj)
+        {
+            return (UIColorValue)obj.GetValue(UIColorProperty);
+        }
     }
 }
