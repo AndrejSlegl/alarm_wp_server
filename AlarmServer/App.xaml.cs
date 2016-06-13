@@ -2,20 +2,15 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.Devices.Geolocation;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+using Windows.Storage;
 using Windows.System.Display;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
-using Windows.UI.Xaml.Controls.Primitives;
-using Windows.UI.Xaml.Data;
-using Windows.UI.Xaml.Input;
-using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Animation;
 using Windows.UI.Xaml.Navigation;
 
@@ -32,6 +27,13 @@ namespace AlarmServer
         DisplayRequest displayRequest = new DisplayRequest();
         private TransitionCollection transitions;
 
+        const string ALARM_ON_REQ = "/alarmOn";
+        const string ALARM_OFF_REQ = "/alarmOff";
+        public readonly MainViewModel MainModel;
+        readonly Uri indexWebPageUri = new Uri("ms-appx:///Html/index.html");
+        readonly WebServer webServer;
+        Frame frame;
+
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
         /// executed, and as such is the logical equivalent of main() or WinMain().
@@ -41,6 +43,8 @@ namespace AlarmServer
             this.InitializeComponent();
             this.Suspending += this.OnSuspending;
 
+            MainModel = new MainViewModel();
+
             locator = new Geolocator()
             {
                 DesiredAccuracy = PositionAccuracy.High,
@@ -49,7 +53,10 @@ namespace AlarmServer
                 DesiredAccuracyInMeters = 1
             };
 
-
+            webServer = new WebServer(new Dictionary<string, RuleDeletage>
+            {
+                { "/", HandleGetPage }
+            }, "42564");
         }
 
         /// <summary>
@@ -78,6 +85,7 @@ namespace AlarmServer
             {
                 // Create a Frame to act as the navigation context and navigate to the first page
                 rootFrame = new Frame();
+                frame = rootFrame;
 
                 // TODO: change this value to a cache size that is appropriate for your application
                 rootFrame.CacheSize = 1;
@@ -123,6 +131,8 @@ namespace AlarmServer
 
             // Ensure the current window is active
             Window.Current.Activate();
+
+            webServer.StartServer();
         }
 
         private void Current_VisibilityChanged(object sender, Windows.UI.Core.VisibilityChangedEventArgs e)
@@ -178,6 +188,69 @@ namespace AlarmServer
         private void Locator_PositionChanged(Geolocator sender, PositionChangedEventArgs args)
         {
             Debug.WriteLine("Locator_PositionChanged: " + args.Position.Coordinate);
+        }
+
+        private async Task<UIWebResponse> HandleUIRequestAsync(UIWebRequest request)
+        {
+            var dispatcher = frame?.Dispatcher;
+            if (dispatcher == null)
+                throw new Exception("No dispacher");
+
+            UIWebResponse response = null;
+
+            await dispatcher.RunAsync(CoreDispatcherPriority.High, () =>
+            {
+                response = MainModel.HandleWebRequest(request);
+            });
+
+            return response;
+        }
+
+        private async Task<WebResponse> HandleGetPage(WebResponse request)
+        {
+            var uiReq = new UIWebRequest();
+
+            if (request.uri == ALARM_ON_REQ)
+                uiReq.AlarmOn = true;
+            else if (request.uri == ALARM_OFF_REQ)
+                uiReq.AlarmOn = false;
+
+            var uiRes = await HandleUIRequestAsync(uiReq);
+
+            WebResponse response = new WebResponse();
+            response.header = new Dictionary<string, string>()
+            {
+                { "Content-Type", "text/html" },
+            };
+
+            if (uiReq.AlarmOn != null)
+            {
+                response.header.Add("Location", "/");
+            }
+
+            var file = await StorageFile.GetFileFromApplicationUriAsync(indexWebPageUri);
+            string text = null;
+
+            using (var fileStream = await file.OpenReadAsync())
+            {
+                using (var reader = new StreamReader(fileStream.AsStreamForRead()))
+                {
+                    text = await reader.ReadToEndAsync();
+
+                    var alarmOnHref = uiRes.AlarmOn ? ALARM_OFF_REQ : ALARM_ON_REQ;
+                    var alarmOnText = uiRes.AlarmOn ? "Turn Off" : "Turn On";
+                    var sector0Val = uiRes.Sector0BoolValue ? "1" : "0";
+
+                    text = text.Replace("{TAH}", alarmOnHref);
+                    text = text.Replace("{TAT}", alarmOnText);
+                    text = text.Replace("{S0V}", sector0Val);
+                }
+            }
+
+            MemoryStream responseStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text));
+            response.content = responseStream;
+
+            return response;
         }
     }
 }

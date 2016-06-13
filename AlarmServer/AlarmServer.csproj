@@ -105,7 +105,10 @@
     <Compile Include="SensorValueModel.cs" />
     <Compile Include="UIColorToBrushConverter.cs" />
     <Compile Include="UIColorValue.cs" />
+    <Compile Include="UIWebRequest.cs" />
+    <Compile Include="UIWebResponse.cs" />
     <Compile Include="ValueChangeEvent.cs" />
+    <Compile Include="WebServer.cs" />
   </ItemGroup>
   <ItemGroup>
     <AppxManifest Include="Package.appxmanifest">
@@ -120,6 +123,7 @@
     <Content Include="Assets\StoreLogo.scale-240.png" />
     <Content Include="Assets\WideLogo.scale-240.png" />
     <Content Include="Audio\Tornado_Siren_II-Delilah-747233690.mp3" />
+    <Content Include="Html\index.html" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">

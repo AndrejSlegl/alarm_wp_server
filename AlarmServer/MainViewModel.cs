@@ -155,6 +155,20 @@ namespace AlarmServer
             }
         }
 
+        public UIWebResponse HandleWebRequest(UIWebRequest request)
+        {
+            if(request.AlarmOn != null)
+            {
+                IsAlarmEnabled = request.AlarmOn.Value;
+            }
+
+            return new UIWebResponse()
+            {
+                AlarmOn = IsAlarmEnabled,
+                Sector0BoolValue = Sector0.BoolValue
+            };
+        }
+
         SensorValueModel GetParameter(string parameterName)
         {
             return Parameters.FirstOrDefault(p => p.ParameterName == parameterName);

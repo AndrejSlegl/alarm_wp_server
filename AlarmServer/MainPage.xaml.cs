@@ -49,7 +49,7 @@ namespace AlarmServer
 
             this.NavigationCacheMode = NavigationCacheMode.Required;
 
-            model = new MainViewModel();
+            model = (Application.Current as App).MainModel;
             DataContext = model;
 
             timer.Interval = TimeSpan.FromSeconds(clientPingInterval);
