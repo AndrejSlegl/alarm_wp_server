@@ -13,18 +13,65 @@
             font-size: 80px;
         }
 
-        a {
-            font-size: 56px;
-        }
-
         p {
             font-size: 46px;
         }
+
+        button {
+            font-size: 56px;
+        }
     </style>
+
+    <script type="text/javascript">
+        var lastUIResponse;
+
+        refreshPageState();
+
+        function sendUIWebRequest(request, callback) {
+            var xmlHttp = new XMLHttpRequest();
+
+            xmlHttp.onreadystatechange = function () {
+                if (xmlHttp.readyState == 4 && xmlHttp.status == 200) {
+                    var response = JSON.parse(xmlHttp.responseText);
+                    lastUIResponse = response;
+                    updatePageState(response);
+
+                    if(callback)
+                        callback(response);
+                }
+            }
+
+            xmlHttp.open("POST", "/", true); // true for asynchronous 
+            xmlHttp.send(JSON.stringify(request));
+        }
+
+        function refreshPageState() {
+            sendUIWebRequest({}, null);
+        }
+
+        function toggleAlarmOn() {
+            var request = {
+                alarmOn:false
+            };
+
+            if (lastUIResponse) {
+                request.alarmOn = !lastUIResponse.alarmOn;
+            }
+
+            sendUIWebRequest(request, null);
+        }
+
+        function updatePageState(response) {
+            document.getElementById("toggleAlarmButton").innerHTML = response.alarmOn ? "Turn Off" : "Turn On";
+            document.getElementById("sector0Par").innerHTML = "sector0   " + response.sector0BoolValue;
+        }
+    </script>
 </head>
+
 <body>
     <h1>Home Alarm</h1>
-    <p>sector0   {S0V}</p>
-    <a href="{TAH}">{TAT}</a>
+    <p id="sector0Par">-</p>
+    <button onclick="toggleAlarmOn()" id="toggleAlarmButton">-</button>
 </body>
+
 </html>

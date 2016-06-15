@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using Windows.Storage.Streams;
 using System.Diagnostics;
+using System.Text;
 
 namespace AlarmServer
 {
@@ -90,10 +91,10 @@ namespace AlarmServer
             {
                 return;
             }
-            
+
             //get the request socket
             StreamSocket sck = args.Socket;
-            
+
             //create new task
             Task.Run(async () =>
             {
@@ -102,13 +103,95 @@ namespace AlarmServer
                     var stream = sck.InputStream.AsStreamForRead();
                     await parseRequest(stream, sck);
                 }
-                catch(Exception ex)
+                catch (Exception ex)
                 {
                     Debug.WriteLine(ex);
                     sck.Dispose();
                 }
-                
+
             });//Task
+        }
+
+        WebResponse parseHeader(Stream stream)
+        {
+            byte[] buffer = new byte[4096];
+            int bufferIndex = 0;
+            bool isPrevNewLine = false;
+
+            while (true)
+            {
+                int val = stream.ReadByte();
+
+                if (val == -1)
+                    break;
+
+                byte b = Convert.ToByte(val);
+                char c = Convert.ToChar(b);
+
+                if (bufferIndex >= buffer.Length)
+                    throw new Exception("Request header too large");
+
+                buffer[bufferIndex++] = b;
+
+                if (c == '\n')
+                {
+                    if (isPrevNewLine)
+                        break;
+
+                    isPrevNewLine = true;
+                }
+                else if (c != '\r')
+                {
+                    isPrevNewLine = false;
+                }
+            }
+
+            string headersString = Encoding.UTF8.GetString(buffer, 0, bufferIndex);
+            var lines = headersString.Split('\n');
+            var line = lines[0].Trim('\r');
+
+            if (string.IsNullOrEmpty(line))
+                throw new Exception("Invalid request");
+
+            //create new request object (same type as response object - possibly better class naming needs to be used)
+            WebResponse request = new WebResponse();
+
+            //get the method (currently GET only supported really) and the request URL
+            if (line.Substring(0, 3) == "GET")
+            {
+                request.method = "GET";
+                request.uri = line.Substring(4);
+            }
+            else if (line.Substring(0, 4) == "POST")
+            {
+                request.method = "POST";
+                request.uri = line.Substring(5);
+            }
+
+            //remove the HTTP version
+            request.uri = Regex.Replace(request.uri, " HTTP.*$", "");
+
+            //create a dictionary for the sent headers
+            Dictionary<string, string> headers = new Dictionary<string, string>();
+            string[] sepa = new string[] { ":" };
+
+            for (int i = 1; i < lines.Length; ++i)
+            {
+                line = lines[i].Trim('\r');
+
+                if (string.IsNullOrEmpty(line))
+                    continue;
+
+                string[] elems = line.Split(sepa, 2, StringSplitOptions.RemoveEmptyEntries);
+
+                if (elems.Length > 1)
+                    headers.Add(elems[0], elems[1]);
+            }
+
+            //assign headers to the request object
+            request.header = headers;
+
+            return request;
         }
 
         /// <summary>
@@ -118,152 +201,133 @@ namespace AlarmServer
         /// <param name="socket">socket used with the request (required for response)</param>
         public async Task parseRequest(Stream requestStream, StreamSocket socket)
         {
-            StreamReader reada = new StreamReader(requestStream);
+            WebResponse request = parseHeader(requestStream);
 
-            //read the first ling to get request type
-            string linge = reada.ReadLine();
+            MemoryStream contentStream = new MemoryStream();
 
-            //create new request object (same type as response object - possibly better class naming needs to be used)
-            WebResponse request = new WebResponse();
+            string contentLengthString = null;
+            request.header.TryGetValue("Content-Length", out contentLengthString);
 
-            //if there is any data...
-            if (linge != null && linge.Length > 0)
+            if (!string.IsNullOrEmpty(contentLengthString))
             {
-                //get the method (currently GET only supported really) and the request URL
-                if (linge.Substring(0, 3) == "GET")
+                byte[] contentBuffer = new byte[2048];
+                int contentLength = int.Parse(contentLengthString);
+                int bytesRead = 0;
+
+                while (bytesRead < contentLength)
                 {
-                    request.method = "GET";
-                    request.uri = linge.Substring(4);
+                    int readCount = contentLength - bytesRead;
+
+                    if (readCount > contentBuffer.Length)
+                        readCount = contentBuffer.Length;
+
+                    int count = requestStream.Read(contentBuffer, 0, readCount);
+                    bytesRead += count;
+                    contentStream.Write(contentBuffer, 0, count);
                 }
-                else if (linge.Substring(0, 4) == "POST")
+
+                contentStream.Seek(0, SeekOrigin.Begin);
+            }
+
+            //assigne rest of the content to the request object in a form of a stream handle moved to the part with content after previous read line operations
+            request.content = contentStream;
+
+            //determines if we found a matching URL rule
+            bool foundrule = false;
+
+            //create a stream writer to the output stream (response)
+            DataWriter writ = new DataWriter(socket.OutputStream);
+
+            //Debug.WriteLine("URL:" + request.uri);
+
+            //if there are any server rules
+            if (serverRules != null)
+            {
+                //for every rule...
+                foreach (var rule in serverRules)
                 {
-                    request.method = "POST";
-                    request.uri = linge.Substring(5);
-                }
-
-                //remove the HTTP version
-                request.uri = Regex.Replace(request.uri, " HTTP.*$", "");
-
-                //create a dictionary for the sent headers
-                Dictionary<string, string> headers = new Dictionary<string, string>();
-
-                //read HTTP headers into the dictionary
-                string line = "";
-                do
-                {
-                    line = reada.ReadLine();
-                    string[] sepa = new string[1];
-                    sepa[0] = ":";
-                    string[] elems = line.Split(sepa, 2, StringSplitOptions.RemoveEmptyEntries);
-                    if (elems.Length > 0)
+                    //if it matches the URL
+                    if (request.uri.StartsWith(rule.Key))
                     {
-                        headers.Add(elems[0], elems[1]);
-                    }
-                } while (line.Length > 0);
+                        //create a new response object
+                        //assign to it response from the method called as a delegate assigned to the URL rule
+                        WebResponse toSend = await rule.Value(request);
 
-                //assign headers to the request object
-                request.header = headers;
+                        //mark that we found a rule
+                        foundrule = true;
 
-                //assigne rest of the content to the request object in a form of a stream handle moved to the part with content after previous read line operations
-                request.content = reada.BaseStream;
-
-                //determines if we found a matching URL rule
-                bool foundrule = false;
-
-                //create a stream writer to the output stream (response)
-                DataWriter writ = new DataWriter(socket.OutputStream);
-
-                Debug.WriteLine("URL:" + request.uri);
-
-                //if there are any server rules
-                if (serverRules != null)
-                {
-                    //for every rule...
-                    foreach (var rule in serverRules)
-                    {
-                        //if it matches the URL
-                        if (request.uri.StartsWith(rule.Key))
+                        try
                         {
-                            //create a new response object
-                            //assign to it response from the method called as a delegate assigned to the URL rule
-                            WebResponse toSend = await rule.Value(request);
-
-                            //mark that we found a rule
-                            foundrule = true;
-
-                            try
+                            //if the rule is meant to redirect...
+                            if (toSend.header.ContainsKey("Location"))
                             {
-                                //if the rule is meant to redirect...
-                                if (toSend.header.ContainsKey("Location"))
-                                {
-                                    writ.WriteString("HTTP/1.1 302\r\n");
-                                }
-                                else //if a normal read operation
-                                {
-                                    writ.WriteString("HTTP/1.1 200 OK\r\n");
-                                }
-
-                                //write content length to the buffer
-                                writ.WriteString("Content-Length: " + toSend.content.Length + "\r\n");
-
-                                //for each of the response headers (returned by the delegate assigned to the URL rule
-                                foreach (string key in toSend.header.Keys)
-                                {
-                                    //write it to the output
-                                    writ.WriteString(key + ": " + toSend.header[key] + "\r\n");
-                                }
-                                //add connection: close header
-                                writ.WriteString("Connection: close\r\n");
-
-                                //new line before writing content
-                                writ.WriteString("\r\n");
-
-                                //reset the output stream
-                                toSend.content.Seek(0, SeekOrigin.Begin);
-
-                                await writ.StoreAsync(); //wait for the data to be saved in the output
-                                await writ.FlushAsync(); //flush (send to the output)
-
-                                //write the data to the output using 1024 buffer (store and flush after every loop)
-                                while (toSend.content.Position < toSend.content.Length)
-                                {
-                                    byte[] buffer;
-                                    if (toSend.content.Length - toSend.content.Position < 1024)
-                                    {
-                                        buffer = new byte[toSend.content.Length - toSend.content.Position];
-                                    }
-                                    else
-                                    {
-                                        buffer = new byte[1024];
-                                    }
-                                    toSend.content.Read(buffer, 0, buffer.Length);
-                                    writ.WriteBytes(buffer);
-
-                                    await writ.StoreAsync();
-                                    await writ.FlushAsync();
-                                }
+                                writ.WriteString("HTTP/1.1 302\r\n");
                             }
-                            finally
+                            else //if a normal read operation
                             {
-                                toSend.content.Dispose();
+                                writ.WriteString("HTTP/1.1 200 OK\r\n");
                             }
 
-                            break;
+                            //write content length to the buffer
+                            writ.WriteString("Content-Length: " + toSend.content.Length + "\r\n");
+
+                            //for each of the response headers (returned by the delegate assigned to the URL rule
+                            foreach (string key in toSend.header.Keys)
+                            {
+                                //write it to the output
+                                writ.WriteString(key + ": " + toSend.header[key] + "\r\n");
+                            }
+                            //add connection: close header
+                            writ.WriteString("Connection: close\r\n");
+
+                            //new line before writing content
+                            writ.WriteString("\r\n");
+
+                            //reset the output stream
+                            toSend.content.Seek(0, SeekOrigin.Begin);
+
+                            await writ.StoreAsync(); //wait for the data to be saved in the output
+                            await writ.FlushAsync(); //flush (send to the output)
+
+                            //write the data to the output using 1024 buffer (store and flush after every loop)
+                            while (toSend.content.Position < toSend.content.Length)
+                            {
+                                byte[] buffer;
+                                if (toSend.content.Length - toSend.content.Position < 1024)
+                                {
+                                    buffer = new byte[toSend.content.Length - toSend.content.Position];
+                                }
+                                else
+                                {
+                                    buffer = new byte[1024];
+                                }
+                                toSend.content.Read(buffer, 0, buffer.Length);
+                                writ.WriteBytes(buffer);
+
+                                await writ.StoreAsync();
+                                await writ.FlushAsync();
+                            }
                         }
+                        finally
+                        {
+                            toSend.content.Dispose();
+                        }
+
+                        break;
                     }
                 }
+            }
 
-                if (foundrule == false)
-                {
-                    writ.WriteString("HTTP/1.1 404 Not Found\r\n");
-                    writ.WriteString("Content-Type: text/html\r\n");
-                    writ.WriteString("Content-Length: 9\r\n");
-                    writ.WriteString("Pragma: no-cache\r\n");
-                    writ.WriteString("Connection: close\r\n");
-                    writ.WriteString("\r\n");
-                    writ.WriteString("Not found");
-                    await writ.StoreAsync();
-                }
+            if (foundrule == false)
+            {
+                writ.WriteString("HTTP/1.1 404 Not Found\r\n");
+                writ.WriteString("Content-Type: text/html\r\n");
+                writ.WriteString("Content-Length: 9\r\n");
+                writ.WriteString("Pragma: no-cache\r\n");
+                writ.WriteString("Connection: close\r\n");
+                writ.WriteString("\r\n");
+                writ.WriteString("Not found");
+                await writ.StoreAsync();
             }
         }
     }

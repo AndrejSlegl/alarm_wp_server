@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.Serialization.Json;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
@@ -55,7 +56,7 @@ namespace AlarmServer
 
             webServer = new WebServer(new Dictionary<string, RuleDeletage>
             {
-                { "/", HandleGetPage }
+                { "/", HandleHttpRequest }
             }, "42564");
         }
 
@@ -206,49 +207,50 @@ namespace AlarmServer
             return response;
         }
 
-        private async Task<WebResponse> HandleGetPage(WebResponse request)
+        private Task<WebResponse> HandleHttpRequest(WebResponse request)
         {
-            var uiReq = new UIWebRequest();
+            switch(request.method)
+            {
+                case "GET":
+                    return HandleHttpGetRequest(request);
+                case "POST":
+                    return HandleHttpPostRequest(request);
+            }
 
-            if (request.uri == ALARM_ON_REQ)
-                uiReq.AlarmOn = true;
-            else if (request.uri == ALARM_OFF_REQ)
-                uiReq.AlarmOn = false;
+            throw new Exception("Unsupported request");
+        }
 
-            var uiRes = await HandleUIRequestAsync(uiReq);
-
+        async Task<WebResponse> HandleHttpGetRequest(WebResponse request)
+        {
             WebResponse response = new WebResponse();
             response.header = new Dictionary<string, string>()
             {
                 { "Content-Type", "text/html" },
             };
 
-            if (uiReq.AlarmOn != null)
-            {
-                response.header.Add("Location", "/");
-            }
-
             var file = await StorageFile.GetFileFromApplicationUriAsync(indexWebPageUri);
-            string text = null;
+            var fileStream = await file.OpenReadAsync();
+            
+            response.content = fileStream.AsStreamForRead();
 
-            using (var fileStream = await file.OpenReadAsync())
+            return response;
+        }
+
+        async Task<WebResponse> HandleHttpPostRequest(WebResponse request)
+        {
+            var uiReq = UIWebRequest.Deserialize(request.content);
+            var uiRes = await HandleUIRequestAsync(uiReq);
+
+            WebResponse response = new WebResponse();
+            response.header = new Dictionary<string, string>()
             {
-                using (var reader = new StreamReader(fileStream.AsStreamForRead()))
-                {
-                    text = await reader.ReadToEndAsync();
+                { "Content-Type", "application/json" },
+            };
 
-                    var alarmOnHref = uiRes.AlarmOn ? ALARM_OFF_REQ : ALARM_ON_REQ;
-                    var alarmOnText = uiRes.AlarmOn ? "Turn Off" : "Turn On";
-                    var sector0Val = uiRes.Sector0BoolValue ? "1" : "0";
+            MemoryStream stream = new MemoryStream();
+            uiRes.Serialize(stream);
 
-                    text = text.Replace("{TAH}", alarmOnHref);
-                    text = text.Replace("{TAT}", alarmOnText);
-                    text = text.Replace("{S0V}", sector0Val);
-                }
-            }
-
-            MemoryStream responseStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(text));
-            response.content = responseStream;
+            response.content = stream;
 
             return response;
         }
