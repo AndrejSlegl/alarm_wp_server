@@ -204,7 +204,7 @@ namespace AlarmServer
 
         private Task<WebResponse> HandleHttpRequest(WebResponse request)
         {
-            switch(request.method)
+            switch(request.Method)
             {
                 case "GET":
                     return HandleHttpGetRequest(request);
@@ -218,7 +218,7 @@ namespace AlarmServer
         async Task<WebResponse> HandleHttpGetRequest(WebResponse request)
         {
             WebResponse response = new WebResponse();
-            response.header = new Dictionary<string, string>()
+            response.Headers = new Dictionary<string, string>()
             {
                 { "Content-Type", "text/html" },
             };
@@ -226,18 +226,18 @@ namespace AlarmServer
             var file = await StorageFile.GetFileFromApplicationUriAsync(indexWebPageUri);
             var fileStream = await file.OpenReadAsync();
             
-            response.content = fileStream.AsStreamForRead();
+            response.Content = fileStream.AsStreamForRead();
 
             return response;
         }
 
         async Task<WebResponse> HandleHttpPostRequest(WebResponse request)
         {
-            var uiReq = UIWebRequest.Deserialize(request.content);
+            var uiReq = UIWebRequest.Deserialize(request.Content);
             var uiRes = await HandleUIRequestAsync(uiReq);
 
             WebResponse response = new WebResponse();
-            response.header = new Dictionary<string, string>()
+            response.Headers = new Dictionary<string, string>()
             {
                 { "Content-Type", "application/json" },
             };
@@ -245,7 +245,7 @@ namespace AlarmServer
             MemoryStream stream = new MemoryStream();
             uiRes.Serialize(stream);
 
-            response.content = stream;
+            response.Content = stream;
 
             return response;
         }

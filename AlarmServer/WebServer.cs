@@ -10,42 +10,27 @@ using System.Text;
 
 namespace AlarmServer
 {
-    //method to be called when url rule is met
-    public delegate Task<WebResponse> RuleDeletage(WebResponse request);
-
-    //delegate type for the error event
-    public delegate void ErrorOccured(int code, string message);
+    public delegate Task<WebResponse> WebRequestHandlerDelegate(WebResponse request);
 
     public class WebResponse
     {
-        public string responseStatus;
-        public IReadOnlyDictionary<string, string> header;
-        public string method;
-        public string uri;
-        public Stream content;
+        public string ResponseStatus { get; set; }
+        public IReadOnlyDictionary<string, string> Headers { get; set; }
+        public string Method { get; set; }
+        public string Uri { get; set; }
+        public Stream Content { get; set; }
     }
 
     public class WebServer
     {
-        /// <summary>
-        /// indicates if server should be listening
-        /// </summary>
-        protected bool isListening = false;
-        protected string port;
-        protected bool started;
-        private readonly RuleDeletage requestHandler;
+        readonly string port;
+        readonly WebRequestHandlerDelegate requestHandler;
+        bool started;
+        bool isListening = false;
 
-        /// <summary>
-        /// event fired when an error occured
-        /// </summary>
-        public event ErrorOccured errorOccured;
-
-        /// <summary>
-        /// socket listener - the main IO part
-        /// </summary>
-        StreamSocketListener listener = new StreamSocketListener();
+        readonly StreamSocketListener listener = new StreamSocketListener();
         
-        public WebServer(RuleDeletage requestHandler, string port)
+        public WebServer(WebRequestHandlerDelegate requestHandler, string port)
         {
             System.Diagnostics.Contracts.Contract.Requires(requestHandler != null);
 
@@ -69,33 +54,54 @@ namespace AlarmServer
             }
             catch (Exception ex)
             {
+                Debug.WriteLine(ex);
                 started = false;
-
-                //if possible fire the error event with the exception message
-                errorOccured?.Invoke(-1, ex.Message);
             }
         }
 
         void listener_ConnectionReceived(StreamSocketListener sender, StreamSocketListenerConnectionReceivedEventArgs args)
         {
-            //if we should not be listening anymore, yet for some reason request was still parsed (phone not yet closed the socket) exit the method as it may be unwanted by the user for anybody to read any data
             if (isListening == false)
             {
                 return;
             }
-
-            //get the request socket
+            
             StreamSocket sck = args.Socket;
+            
+            Task.Run(() => HandleNewConnectionAsync(sck));
+        }
 
-            //create new task
-            Task.Run(async () =>
+        async Task HandleNewConnectionAsync(StreamSocket sck)
+        {
+            WebResponse request = null;
+            WebResponse response = null;
+
+            try
             {
-                WebResponse request = null;
-                WebResponse response = null;
+                request = ParseRequest(sck.InputStream);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
 
+                response = new WebResponse
+                {
+                    ResponseStatus = "400 Bad Request",
+                    Headers = new Dictionary<string, string>
+                    {
+                        { "Pragma", "no-cache" }
+                    }
+                };
+            }
+
+            if (response == null)
+            {
                 try
                 {
-                    request = ParseRequest(sck.InputStream);
+                    response = await requestHandler(request);
+
+                    if (response == null)
+                        response = CreateNotFoundResponse();
                 }
                 catch (Exception ex)
                 {
@@ -103,52 +109,29 @@ namespace AlarmServer
 
                     response = new WebResponse
                     {
-                        responseStatus = "400 Bad Request",
-                        header = new Dictionary<string, string>
+                        ResponseStatus = "500 Internal Server Error",
+                        Headers = new Dictionary<string, string>
                         {
                             { "Pragma", "no-cache" }
                         }
                     };
                 }
+            }
 
-                if (response == null)
-                {
-                    try
-                    {
-                        response = await requestHandler(request);
-
-                        if (response == null)
-                            response = CreateNotFoundResponse();
-                    }
-                    catch (Exception ex)
-                    {
-                        Debug.WriteLine(ex);
-
-                        response = new WebResponse
-                        {
-                            responseStatus = "500 Internal Server Error",
-                            header = new Dictionary<string, string>
-                            {
-                                { "Pragma", "no-cache" }
-                            }
-                        };
-                    }
-                }
-
-                try
-                {
-                    await SendResponse(response, sck.OutputStream);
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine(ex);
-
-                    if (response.content != null)
-                        response.content.Dispose();
-
-                    sck.Dispose();
-                }
-            });
+            try
+            {
+                SendResponse(response, sck.OutputStream);
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex);
+                sck.Dispose();
+            }
+            finally
+            {
+                if (response.Content != null)
+                    response.Content.Dispose();
+            }
         }
 
         WebResponse ParseHeader(Stream stream)
@@ -190,7 +173,7 @@ namespace AlarmServer
             var line = lines[0].Trim('\r');
 
             if (string.IsNullOrEmpty(line))
-                throw new Exception("Invalid request");
+                throw new Exception("Request is empty");
 
             //create new request object (same type as response object - possibly better class naming needs to be used)
             WebResponse request = new WebResponse();
@@ -198,17 +181,20 @@ namespace AlarmServer
             //get the method (currently GET only supported really) and the request URL
             if (line.Substring(0, 3) == "GET")
             {
-                request.method = "GET";
-                request.uri = line.Substring(4);
+                request.Method = "GET";
+                request.Uri = line.Substring(4);
             }
             else if (line.Substring(0, 4) == "POST")
             {
-                request.method = "POST";
-                request.uri = line.Substring(5);
+                request.Method = "POST";
+                request.Uri = line.Substring(5);
             }
 
+            if (request.Method == null)
+                throw new Exception("Unsupported HTTP method");
+
             //remove the HTTP version
-            request.uri = Regex.Replace(request.uri, " HTTP.*$", "");
+            request.Uri = Regex.Replace(request.Uri, " HTTP.*$", "");
 
             //create a dictionary for the sent headers
             Dictionary<string, string> headers = new Dictionary<string, string>();
@@ -228,7 +214,7 @@ namespace AlarmServer
             }
 
             //assign headers to the request object
-            request.header = headers;
+            request.Headers = headers;
 
             return request;
         }
@@ -240,7 +226,7 @@ namespace AlarmServer
             var contentStream = new MemoryStream();
 
             string contentLengthString = null;
-            request.header.TryGetValue("Content-Length", out contentLengthString);
+            request.Headers.TryGetValue("Content-Length", out contentLengthString);
 
             if (!string.IsNullOrEmpty(contentLengthString))
             {
@@ -263,76 +249,58 @@ namespace AlarmServer
                 contentStream.Seek(0, SeekOrigin.Begin);
             }
             
-            request.content = contentStream;
+            request.Content = contentStream;
             return request;
         }
 
-        async Task SendResponse(WebResponse toSend, IOutputStream outputStream)
+        void SendResponse(WebResponse response, IOutputStream outputStream)
         {
-            DataWriter writ = new DataWriter(outputStream);
+            Stream stream = outputStream.AsStreamForWrite();
+            StreamWriter writer = new StreamWriter(stream);
 
-            var status = toSend.responseStatus;
+            var status = response.ResponseStatus;
+            long contentLength = response.Content == null ? 0 : response.Content.Length;
 
             if (status == null)
             {
-                //if the rule is meant to redirect...
-                if (toSend.header.ContainsKey("Location"))
+                if (response.Headers != null && response.Headers.ContainsKey("Location"))
                     status = "302";
                 else
                     status = "200 OK";
             }
 
-            writ.WriteString(CreateStatusString(status) + "\r\n");
+            writer.WriteLine(CreateStatusString(status));
+            writer.WriteLine("Content-Length: " + contentLength);
 
-            if (toSend.content != null)
+            if (response.Headers != null)
             {
-                //write content length to the buffer
-                writ.WriteString("Content-Length: " + toSend.content.Length + "\r\n");
-            }
-            else
-            {
-                writ.WriteString("Content-Length: 0\r\n");
-            }
-
-            //for each of the response headers (returned by the delegate assigned to the URL rule
-            foreach (string key in toSend.header.Keys)
-            {
-                //write it to the output
-                writ.WriteString(key + ": " + toSend.header[key] + "\r\n");
-            }
-
-            //add connection: close header
-            writ.WriteString("Connection: close\r\n");
-
-            //new line before writing content
-            writ.WriteString("\r\n");
-
-            await writ.StoreAsync(); //wait for the data to be saved in the output
-            await writ.FlushAsync(); //flush (send to the output)
-
-            if (toSend.content != null)
-            {
-                //reset the output stream
-                toSend.content.Seek(0, SeekOrigin.Begin);
-
-                //write the data to the output using 1024 buffer (store and flush after every loop)
-                while (toSend.content.Position < toSend.content.Length)
+                foreach (var pair in response.Headers)
                 {
-                    byte[] buffer;
-                    if (toSend.content.Length - toSend.content.Position < 1024)
-                    {
-                        buffer = new byte[toSend.content.Length - toSend.content.Position];
-                    }
-                    else
-                    {
-                        buffer = new byte[1024];
-                    }
-                    toSend.content.Read(buffer, 0, buffer.Length);
-                    writ.WriteBytes(buffer);
-
-                    await writ.StoreAsync();
-                    await writ.FlushAsync();
+                    writer.Write(pair.Key);
+                    writer.Write(": ");
+                    writer.WriteLine(pair.Value);
                 }
+            }
+            
+            writer.WriteLine("Connection: close");
+            writer.WriteLine();
+            writer.Flush();
+
+            if (response.Content == null)
+                return;
+            
+            response.Content.Seek(0, SeekOrigin.Begin);
+
+            byte[] buffer = new byte[2048];
+            int bytesRead = 0;
+            
+            while (bytesRead < contentLength)
+            {
+                int count = response.Content.Read(buffer, 0, buffer.Length);
+                bytesRead += count;
+                
+                stream.Write(buffer, 0, count);
+                stream.Flush();
             }
         }
 
@@ -353,9 +321,9 @@ namespace AlarmServer
 
             return new WebResponse()
             {
-                responseStatus = "404 Not Found",
-                header = headers,
-                content = new MemoryStream(data)
+                ResponseStatus = "404 Not Found",
+                Headers = headers,
+                Content = new MemoryStream(data)
             };
         }
     }
