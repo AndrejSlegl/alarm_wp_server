@@ -27,9 +27,7 @@ namespace AlarmServer
         private Geolocator locator;
         DisplayRequest displayRequest = new DisplayRequest();
         private TransitionCollection transitions;
-
-        const string ALARM_ON_REQ = "/alarmOn";
-        const string ALARM_OFF_REQ = "/alarmOff";
+        
         public readonly MainViewModel MainModel;
         readonly Uri indexWebPageUri = new Uri("ms-appx:///Html/index.html");
         readonly WebServer webServer;
@@ -54,10 +52,7 @@ namespace AlarmServer
                 DesiredAccuracyInMeters = 1
             };
 
-            webServer = new WebServer(new Dictionary<string, RuleDeletage>
-            {
-                { "/", HandleHttpRequest }
-            }, "42564");
+            webServer = new WebServer(HandleHttpRequest, "42564");
         }
 
         /// <summary>
