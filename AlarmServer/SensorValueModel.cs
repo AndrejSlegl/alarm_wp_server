@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AlarmServer
 {
@@ -15,15 +11,16 @@ namespace AlarmServer
         string value = "-";
         string minValue = "-";
         string maxValue = "-";
-        UIColorValue uiColor;
+        UIColorValue uiColor = UIColorValue.None;
         readonly bool triggerAlarmValue;
-        readonly Func<int, bool> boolValueSetter;
         readonly Action<SensorValueModel> triggerAlarmAction;
 
         public string ParameterName { get; }
         public string Value { get { return value; } private set { if (value == this.value) return; this.value = value; RaisePropertyChanged(nameof(Value)); UpdateUIColorValue(); } }
         public string MinValue { get { return minValue; } private set { if (minValue == value) return; minValue = value; RaisePropertyChanged(nameof(MinValue)); } }
         public string MaxValue { get { return maxValue; } private set { if (maxValue == value) return; maxValue = value; RaisePropertyChanged(nameof(MaxValue)); } }
+
+        public bool DisableUIColor { get; set; }
 
         public bool BoolValue
         {
@@ -35,23 +32,16 @@ namespace AlarmServer
 
                 boolValue = value;
                 RaisePropertyChanged(nameof(BoolValue));
-                UpdateUIColorValue();
             }
         }
 
         public UIColorValue UIColor { get { return uiColor; } private set { if (uiColor == value) return; uiColor = value; RaisePropertyChanged(nameof(UIColor)); } }
 
-        public SensorValueModel(string parameterName, bool triggerAlarmValue = true, Action<SensorValueModel> triggerAlarmAction = null) : 
-            this(parameterName, DefaultBoolValueSetter)
+        public SensorValueModel(string parameterName, bool triggerAlarmValue = true, Action<SensorValueModel> triggerAlarmAction = null)
         {
+            this.ParameterName = parameterName;
             this.triggerAlarmValue = triggerAlarmValue;
             this.triggerAlarmAction = triggerAlarmAction;
-        }
-
-        public SensorValueModel(string parameterName, Func<int, bool> boolValueSetter)
-        {
-            ParameterName = parameterName;
-            this.boolValueSetter = boolValueSetter;
         }
 
         public void Update(int value)
@@ -59,7 +49,7 @@ namespace AlarmServer
             v = value;
             Value = value.ToString();
 
-            bool boolValue = boolValueSetter(value);
+            bool boolValue = DefaultBoolValueSetter(value);
 
             if (BoolValue != boolValue)
             {
@@ -81,6 +71,8 @@ namespace AlarmServer
                 max = value;
                 MaxValue = value.ToString();
             }
+
+            UpdateUIColorValue();
         }
 
         public void Reset()
@@ -93,6 +85,8 @@ namespace AlarmServer
             v = 0;
             min = int.MaxValue;
             max = int.MinValue;
+
+            UpdateUIColorValue();
         }
 
         public void Increment()
@@ -102,7 +96,7 @@ namespace AlarmServer
 
         void UpdateUIColorValue()
         {
-            if (value == "-")
+            if (value == "-" || DisableUIColor)
             {
                 UIColor = UIColorValue.None;
                 return;

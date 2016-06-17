@@ -40,10 +40,13 @@ namespace AlarmServer
             AlarmTriggerEvents = new ObservableCollection<EventModel>();
 
             Rssi = new SensorValueModel("rssi");
+            Rssi.DisableUIColor = true;
+            DisconnectCount = new SensorValueModel("disconnect count");
+            DisconnectCount.DisableUIColor = true;
+            DisconnectCount.Update(0);
+
             Sector0 = new SensorValueModel("sector0", false, TriggerAlarm);
             Movement0 = new SensorValueModel("movement0", true, TriggerAlarm);
-            DisconnectCount = new SensorValueModel("disconnect count", val => false);
-            DisconnectCount.Update(0);
 
             Parameters = new List<SensorValueModel>
             {
