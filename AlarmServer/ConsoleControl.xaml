@@ -9,7 +9,7 @@
     d:DesignHeight="300"
     d:DesignWidth="400">
 
-    <Grid Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    <Grid Margin="10,0,10,0" Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition />
@@ -20,30 +20,6 @@
             <Button Content="query" x:Name="QueryButton" Click="QueryButton_Click" IsEnabled="{Binding IsConnected}" />
         </StackPanel>
 
-        <ListView ItemsSource="{Binding Events}" SelectionMode="None" Grid.Row="1" Margin="0,20,0,0">
-            <ListView.ItemContainerTransitions>
-                <TransitionCollection />
-            </ListView.ItemContainerTransitions>
-
-            <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                    <TextBlock Text="{Binding Description}" Style="{StaticResource TextBlockStyle}" TextWrapping="Wrap" Foreground="{Binding Type, Converter={StaticResource EventTypeToBrushConverter}}" />
-                </DataTemplate>
-            </ItemsControl.ItemTemplate>
-
-            <ItemsControl.ItemContainerStyle>
-                <Style TargetType="ListViewItem">
-                    <Setter Property="Margin" Value="0,0,0,5" />
-                    <Setter Property="Padding" Value="0" />
-                    <Setter Property="Template">
-                        <Setter.Value>
-                            <ControlTemplate TargetType="ListViewItem">
-                                <ContentPresenter />
-                            </ControlTemplate>
-                        </Setter.Value>
-                    </Setter>
-                </Style>
-            </ItemsControl.ItemContainerStyle>
-        </ListView>
+        <ListView ItemsSource="{Binding Events}" Grid.Row="1" Margin="0,20,0,0" Style="{StaticResource ConsoleListViewStyle}" />
     </Grid>
 </UserControl>

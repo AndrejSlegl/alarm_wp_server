@@ -16,8 +16,9 @@ namespace AlarmServer
         string minValue = "-";
         string maxValue = "-";
         UIColorValue uiColor;
-        bool invertColor;
-        Func<int, bool> boolValueSetter;
+        readonly bool triggerAlarmValue;
+        readonly Func<int, bool> boolValueSetter;
+        readonly Action<SensorValueModel> triggerAlarmAction;
 
         public string ParameterName { get; }
         public string Value { get { return value; } private set { if (value == this.value) return; this.value = value; RaisePropertyChanged(nameof(Value)); UpdateUIColorValue(); } }
@@ -40,10 +41,11 @@ namespace AlarmServer
 
         public UIColorValue UIColor { get { return uiColor; } private set { if (uiColor == value) return; uiColor = value; RaisePropertyChanged(nameof(UIColor)); } }
 
-        public SensorValueModel(string parameterName, bool invertColor = false) : 
+        public SensorValueModel(string parameterName, bool triggerAlarmValue = true, Action<SensorValueModel> triggerAlarmAction = null) : 
             this(parameterName, DefaultBoolValueSetter)
         {
-            this.invertColor = invertColor;
+            this.triggerAlarmValue = triggerAlarmValue;
+            this.triggerAlarmAction = triggerAlarmAction;
         }
 
         public SensorValueModel(string parameterName, Func<int, bool> boolValueSetter)
@@ -56,7 +58,18 @@ namespace AlarmServer
         {
             v = value;
             Value = value.ToString();
-            BoolValue = boolValueSetter(value);
+
+            bool boolValue = boolValueSetter(value);
+
+            if (BoolValue != boolValue)
+            {
+                BoolValue = boolValue;
+
+                if (boolValue == triggerAlarmValue && triggerAlarmAction != null)
+                {
+                    triggerAlarmAction(this);
+                }
+            }
 
             if (value < min)
             {
@@ -94,9 +107,8 @@ namespace AlarmServer
                 UIColor = UIColorValue.None;
                 return;
             }
-
-            bool val = invertColor ? !boolValue : boolValue;
-            UIColor = val ? UIColorValue.Green : UIColorValue.Red;
+            
+            UIColor = boolValue == triggerAlarmValue ? UIColorValue.Red : UIColorValue.Green;
         }
 
         static bool DefaultBoolValueSetter(int val)

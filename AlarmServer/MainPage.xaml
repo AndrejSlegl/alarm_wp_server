@@ -18,11 +18,11 @@
     <Page.BottomAppBar>
         <CommandBar>
             <AppBarButton Icon="Bookmarks" Label="console" x:Name="OpenConsoleBtn" Click="OpenConsoleBtn_Click" />
-            <AppBarButton Icon="Next" Label="restart" x:Name="RestartServerBtn" Click="RestartServerBtn_Click" />
+            <!--<AppBarButton Icon="Next" Label="restart" x:Name="RestartServerBtn" Click="RestartServerBtn_Click" />-->
         </CommandBar>
     </Page.BottomAppBar>
 
-    <Grid Margin="0,20,0,0">
+    <Grid Margin="10,20,10,0">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition />
@@ -45,6 +45,8 @@
 
             <Button Margin="0,20,0,0" Content="STOP ALARM" x:Name="StopButton" Click="StopButton_Click" Height="100" HorizontalAlignment="Stretch" IsEnabled="{Binding AlarmSoundSource, Converter={StaticResource BoolConverter}}" Background="{Binding AlarmSoundSource, Converter={StaticResource StopAlarmBackgroundConverter}}" />
         </StackPanel>
+
+        <ListView ItemsSource="{Binding AlarmTriggerEvents}" Grid.Row="1" Margin="0,20,0,20" Style="{StaticResource ConsoleListViewStyle}" />
 
         <StackPanel Grid.Row="2" Margin="0,0,0,40">
             <Button Content="{Binding ToggleAlarmText}" x:Name="AlarmToggleButton" Click="AlarmToggleButton_Click" Height="70" Width="150" HorizontalAlignment="Center" Background="{Binding IsAlarmEnabled, Converter={StaticResource ToggleAlarmBackgroundConverter}}" />

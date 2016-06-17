@@ -322,7 +322,7 @@ namespace AlarmServer
 
         private void AlarmToggleButton_Click(object sender, RoutedEventArgs e)
         {
-            model.IsAlarmEnabled = !model.IsAlarmEnabled;
+            model.AlarmToggleButtonClick();
         }
 
         private void RestartServerBtn_Click(object sender, RoutedEventArgs e)

@@ -17,6 +17,8 @@ namespace AlarmServer
         
         public ObservableCollection<EventModel> Events { get; }
 
+        public ObservableCollection<EventModel> AlarmTriggerEvents { get; }
+
         public List<SensorValueModel> Parameters { get; }
 
         public SensorValueModel Rssi { get; }
@@ -35,10 +37,11 @@ namespace AlarmServer
         public MainViewModel()
         {
             Events = new ObservableCollection<EventModel>();
+            AlarmTriggerEvents = new ObservableCollection<EventModel>();
 
             Rssi = new SensorValueModel("rssi");
-            Sector0 = new SensorValueModel("sector0");
-            Movement0 = new SensorValueModel("movement0", true);
+            Sector0 = new SensorValueModel("sector0", false, TriggerAlarm);
+            Movement0 = new SensorValueModel("movement0", true, TriggerAlarm);
             DisconnectCount = new SensorValueModel("disconnect count", val => false);
             DisconnectCount.Update(0);
 
@@ -78,6 +81,14 @@ namespace AlarmServer
                 Events.RemoveAt(Events.Count - 1);
         }
 
+        void AddAlarmTriggerEvent(EventModel eventModel)
+        {
+            AlarmTriggerEvents.Insert(0, eventModel);
+
+            if (AlarmTriggerEvents.Count > 100)
+                AlarmTriggerEvents.RemoveAt(AlarmTriggerEvents.Count - 1);
+        }
+
         public void AddEvent(ValueChangeEvent valueChangeEvent)
         {
             var parameter = GetParameter(valueChangeEvent.Name);
@@ -89,16 +100,6 @@ namespace AlarmServer
                 parameter.Update(valueChangeEvent.Value);
 
             AddEvent((EventModel)valueChangeEvent);
-
-            if (sector0Value != Sector0.BoolValue && Sector0.BoolValue == false)
-            {
-                StartAlarmSound();
-            }
-
-            if (movement0Value != Movement0.BoolValue && Movement0.BoolValue == true)
-            {
-                StartAlarmSound();
-            }
         }
 
         public void AddClientMessage(ClientMessage clientMessage)
@@ -134,6 +135,18 @@ namespace AlarmServer
             AlarmSoundSource = null;
             stopAlarmTimer.Tick -= StopAlarmTimer_Tick;
             stopAlarmTimer.Stop();
+        }
+
+        public void AlarmToggleButtonClick()
+        {
+            IsAlarmEnabled = !IsAlarmEnabled;
+        }
+
+        void TriggerAlarm(SensorValueModel sensorValue)
+        {
+            StartAlarmSound();
+
+            AddAlarmTriggerEvent(new EventModel(DateTime.Now, sensorValue.ParameterName));
         }
 
         public void StartAlarmSound()
