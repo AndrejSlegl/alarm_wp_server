@@ -32,6 +32,8 @@ namespace AlarmServer
     {
         const string port = "43254";
         const string statusQuery = "status?";
+        const string stopSirenText = "stopSiren!";
+        const string sirenActivatedText = "sirenActivated";
 
         readonly DispatcherTimer timer = new DispatcherTimer();
         readonly MainViewModel model;
@@ -168,10 +170,16 @@ namespace AlarmServer
                 model.AddEvent("New Connection " + remoteIp, EventType.NewConnection);
                 model.ClientConnected();
             });
+            
+            StringBuilder builder = new StringBuilder();
+            builder.Append(sirenActivatedText);
+            builder.Append(':');
+            builder.AppendLine(model.IsAlarmEnabled ? "1" : "0");
+            builder.AppendLine(statusQuery);
 
             try
             {
-                await SendMessageAsync(streamWriter, statusQuery);
+                await SendMessageAsync(streamWriter, builder.ToString());
                 success = true;
             }
             catch (Exception ex)
@@ -269,13 +277,13 @@ namespace AlarmServer
             await streamWriter.FlushAsync();
         }
 
-        public async void QueryClientStatus()
+        async Task SendMessageSafeAsync(string message)
         {
             foreach (var streamWriter in streamWriters)
             {
                 try
                 {
-                    await SendMessageAsync(streamWriter, statusQuery);
+                    await SendMessageAsync(streamWriter, message);
                 }
                 catch (Exception ex)
                 {
@@ -283,6 +291,11 @@ namespace AlarmServer
                     Dispatch(() => model.AddEvent(ex));
                 }
             }
+        }
+
+        public async void QueryClientStatus()
+        {
+            await SendMessageSafeAsync(statusQuery);
         }
 
         void CloseAllOpenedConnections()
@@ -298,9 +311,10 @@ namespace AlarmServer
             }
         }
 
-        private void StopButton_Click(object sender, RoutedEventArgs e)
+        private async void StopButton_Click(object sender, RoutedEventArgs e)
         {
             model.StopAlarmSound();
+            await SendMessageSafeAsync(stopSirenText);
         }
 
         private void OpenConsoleBtn_Click(object sender, RoutedEventArgs e)
@@ -320,9 +334,12 @@ namespace AlarmServer
             openedPopup.IsOpen = true;
         }
 
-        private void AlarmToggleButton_Click(object sender, RoutedEventArgs e)
+        private async void AlarmToggleButton_Click(object sender, RoutedEventArgs e)
         {
             model.AlarmToggleButtonClick();
+
+            string val = model.IsAlarmEnabled ? "1" : "0";
+            await SendMessageSafeAsync(sirenActivatedText + ":" + val);
         }
 
         private void RestartServerBtn_Click(object sender, RoutedEventArgs e)
