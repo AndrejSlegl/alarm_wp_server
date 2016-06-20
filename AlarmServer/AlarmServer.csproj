@@ -86,6 +86,7 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="AudioPlayer.cs" />
     <Compile Include="BoolConverter.cs" />
     <Compile Include="ConsoleControl.xaml.cs">
       <DependentUpon>ConsoleControl.xaml</DependentUpon>
@@ -95,6 +96,7 @@
     <Compile Include="EventType.cs" />
     <Compile Include="EventTypeToBrushConverter.cs" />
     <Compile Include="ExceptionEvent.cs" />
+    <Compile Include="IAudioPlayer.cs" />
     <Compile Include="IIOTClient.cs" />
     <Compile Include="IIOTMessage.cs" />
     <Compile Include="IIOTServer.cs" />

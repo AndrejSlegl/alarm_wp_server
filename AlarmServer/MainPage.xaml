@@ -28,8 +28,6 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <MediaElement Visibility="Collapsed" AutoPlay="True" IsLooping="True" Source="{Binding AlarmSoundSource}" />
-
         <StackPanel>
             <ItemsControl ItemsSource="{Binding Parameters}">
                 <ItemsControl.ItemTemplate>
@@ -42,7 +40,7 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Button Margin="0,20,0,0" Content="STOP ALARM" Height="100" HorizontalAlignment="Stretch" Background="{Binding AlarmSoundSource, Converter={StaticResource StopAlarmBackgroundConverter}}" Command="{Binding StopAlarmCommand}" />
+            <Button Margin="0,20,0,0" Content="STOP ALARM" Height="100" HorizontalAlignment="Stretch" Background="{Binding IsAlarmActive, Converter={StaticResource StopAlarmBackgroundConverter}}" Command="{Binding StopAlarmCommand}" />
         </StackPanel>
 
         <ListView ItemsSource="{Binding AlarmTriggerEvents}" Grid.Row="1" Margin="0,20,0,20" Style="{StaticResource ConsoleListViewStyle}" />

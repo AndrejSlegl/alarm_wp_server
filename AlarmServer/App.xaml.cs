@@ -66,7 +66,7 @@ namespace AlarmServer
             if (rootFrame == null)
             {
                 dispatcher = Window.Current.Dispatcher;
-                mainModel = new MainViewModel(dispatcher, iotServer);
+                mainModel = new MainViewModel(dispatcher, iotServer, new AudioPlayer());
 
                 mainModel.StartIOTServer();
                 webServer.StartServer();

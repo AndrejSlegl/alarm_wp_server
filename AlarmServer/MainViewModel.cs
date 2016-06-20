@@ -15,19 +15,19 @@ namespace AlarmServer
         }
 
         const string statusQuery = "status?";
-        const string stopSirenText = "stopSiren!";
-        const string sirenActivatedText = "sirenActivated";
+        const string sirenOnText = "sirenOn";
 
         readonly Uri alarmSoundUri = new Uri("ms-appx:///Audio/Tornado_Siren_II-Delilah-747233690.mp3");
         readonly DispatcherTimer stopAlarmTimer = new DispatcherTimer() { Interval = TimeSpan.FromMinutes(10) };
         readonly IIOTServer iotServer;
         readonly CoreDispatcher dispatcher;
+        readonly IAudioPlayer audioPlayer;
         readonly Dictionary<IIOTClient, IOTClientUIInfo> clients = new Dictionary<IIOTClient, IOTClientUIInfo>();
         readonly DispatcherTimer timer = new DispatcherTimer();
         int clientPingInterval = 60;
         bool isConnected;
         bool isAlarmEnabled = true;
-        Uri alarmSoundSource;
+        bool isAlarmActive;
         
         public ObservableCollection<EventModel> Events { get; }
 
@@ -54,18 +54,33 @@ namespace AlarmServer
             }
         }
 
-        public Uri AlarmSoundSource
+        public bool IsAlarmActive
         {
-            get { return alarmSoundSource; }
+            get { return isAlarmActive; }
             private set
             {
-                alarmSoundSource = value;
-                RaisePropertyChanged(nameof(AlarmSoundSource));
-                StopAlarmCommand.IsEnabled = alarmSoundSource != null;
+                if (isAlarmActive == value)
+                    return;
+
+                isAlarmActive = value;
+                RaisePropertyChanged(nameof(IsAlarmActive));
+                StopAlarmCommand.IsEnabled = isAlarmActive;
             }
         }
 
-        public bool IsAlarmEnabled { get { return isAlarmEnabled; } set { if (isAlarmEnabled == value) return; isAlarmEnabled = value; RaisePropertyChanged(nameof(IsAlarmEnabled)); RaisePropertyChanged(nameof(ToggleAlarmText)); } }
+        public bool IsAlarmEnabled
+        {
+            get { return isAlarmEnabled; }
+            private set
+            {
+                if (isAlarmEnabled == value)
+                    return;
+
+                isAlarmEnabled = value;
+                RaisePropertyChanged(nameof(IsAlarmEnabled));
+                RaisePropertyChanged(nameof(ToggleAlarmText));
+            }
+        }
 
         public string ToggleAlarmText { get { return IsAlarmEnabled ? "UGASNI" : "VKLOPI"; } }
 
@@ -73,9 +88,10 @@ namespace AlarmServer
         public UICommand AlarmToggleCommand { get; }
         public UICommand StatusQueryCommand { get; }
 
-        public MainViewModel(CoreDispatcher dispatcher, IIOTServer iotServer)
+        public MainViewModel(CoreDispatcher dispatcher, IIOTServer iotServer, IAudioPlayer audioPlayer)
         {
             this.iotServer = iotServer;
+            this.audioPlayer = audioPlayer;
             this.dispatcher = dispatcher;
 
             Events = new ObservableCollection<EventModel>();
@@ -133,7 +149,7 @@ namespace AlarmServer
             Dispatch(() =>
             {
                 clients.Add(client, new IOTClientUIInfo() { LastResponseTime = DateTime.Now });
-                SendMessageSafe(client, new IOTMessage(new Dictionary<string, long> { { sirenActivatedText, IsAlarmEnabled ? 1 : 0 } }, new string[] { statusQuery }));
+                SendMessageSafe(client, new IOTMessage(CreateSirenOnParameter(), new string[] { statusQuery }));
 
                 IsConnected = clients.Count > 0;
 
@@ -284,18 +300,20 @@ namespace AlarmServer
 
         void StopAlarmSound()
         {
-            AlarmSoundSource = null;
+            if (!IsAlarmActive)
+                return;
+            
             stopAlarmTimer.Tick -= StopAlarmTimer_Tick;
             stopAlarmTimer.Stop();
 
-            SendMessageToAllSafe(new IOTMessage(new string[] { stopSirenText }));
+            audioPlayer.Stop();
+            IsAlarmActive = false;
+            SendMessageToAllSafe(new IOTMessage(CreateSirenOnParameter()));
         }
 
         void AlarmToggleAction()
         {
             IsAlarmEnabled = !IsAlarmEnabled;
-
-            SendMessageToAllSafe(new IOTMessage(new Dictionary<string, long> { { sirenActivatedText, IsAlarmEnabled ? 1 : 0 } }));
         }
 
         void TriggerAlarm(SensorValueModel sensorValue)
@@ -305,17 +323,19 @@ namespace AlarmServer
             AddAlarmTriggerEvent(new EventModel(DateTime.Now, sensorValue.ParameterName));
         }
 
-        public void StartAlarmSound()
+        void StartAlarmSound()
         {
             if (!IsAlarmEnabled)
                 return;
 
-            if (AlarmSoundSource == null)
+            if (!IsAlarmActive)
             {
                 stopAlarmTimer.Tick -= StopAlarmTimer_Tick;
                 stopAlarmTimer.Tick += StopAlarmTimer_Tick;
                 stopAlarmTimer.Start();
-                AlarmSoundSource = alarmSoundUri;
+                audioPlayer.Play(alarmSoundUri, true);
+                IsAlarmActive = true;
+                SendMessageToAllSafe(new IOTMessage(CreateSirenOnParameter()));
             }
             else
             {
@@ -341,6 +361,11 @@ namespace AlarmServer
         SensorValueModel GetParameter(string parameterName)
         {
             return Parameters.FirstOrDefault(p => p.ParameterName == parameterName);
+        }
+
+        Dictionary<string, long> CreateSirenOnParameter()
+        {
+            return new Dictionary<string, long> { { sirenOnText, IsAlarmActive ? 1 : 0 } };
         }
     }
 }
