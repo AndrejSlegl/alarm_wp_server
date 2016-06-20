@@ -51,6 +51,7 @@ namespace AlarmServer
                 isConnected = value;
                 RaisePropertyChanged(nameof(IsConnected));
                 StatusQueryCommand.IsEnabled = isConnected;
+                CloseAllConnectionsCommand.IsEnabled = isConnected;
             }
         }
 
@@ -87,6 +88,7 @@ namespace AlarmServer
         public UICommand StopAlarmCommand { get; }
         public UICommand AlarmToggleCommand { get; }
         public UICommand StatusQueryCommand { get; }
+        public UICommand CloseAllConnectionsCommand { get; }
 
         public MainViewModel(CoreDispatcher dispatcher, IIOTServer iotServer, IAudioPlayer audioPlayer)
         {
@@ -116,6 +118,7 @@ namespace AlarmServer
             StopAlarmCommand = new UICommand(StopAlarmSound, false);
             AlarmToggleCommand = new UICommand(AlarmToggleAction, true);
             StatusQueryCommand = new UICommand(QueryAllClientsStatus, false);
+            CloseAllConnectionsCommand = new UICommand(CloseAllConnections, false);
         }
 
         public async void StartIOTServer()
@@ -174,7 +177,9 @@ namespace AlarmServer
                 if (!IsConnected)
                 {
                     DisconnectCount.Increment();
-                    Rssi.Reset();
+
+                    foreach (var parameter in Parameters)
+                        parameter.Reset();
                 }
             });
         }
@@ -342,6 +347,12 @@ namespace AlarmServer
                 stopAlarmTimer.Stop();
                 stopAlarmTimer.Start();
             }
+        }
+
+        void CloseAllConnections()
+        {
+            foreach (var client in clients.Keys)
+                client.Dispose();
         }
 
         public UIWebResponse HandleWebRequest(UIWebRequest request)
