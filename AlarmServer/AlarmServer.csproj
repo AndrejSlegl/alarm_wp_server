@@ -115,7 +115,6 @@
     <Compile Include="UICommand.cs" />
     <Compile Include="UIWebRequest.cs" />
     <Compile Include="UIWebResponse.cs" />
-    <Compile Include="ValueChangeEvent.cs" />
     <Compile Include="WebServer.cs" />
   </ItemGroup>
   <ItemGroup>

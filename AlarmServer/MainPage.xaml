@@ -43,7 +43,9 @@
             <Button Margin="0,20,0,0" Content="STOP ALARM" Height="100" HorizontalAlignment="Stretch" Background="{Binding IsAlarmActive, Converter={StaticResource StopAlarmBackgroundConverter}}" Command="{Binding StopAlarmCommand}" />
         </StackPanel>
 
-        <ListView ItemsSource="{Binding AlarmTriggerEvents}" Grid.Row="1" Margin="0,20,0,20" Style="{StaticResource ConsoleListViewStyle}" />
+        <ScrollViewer Grid.Row="1" Margin="0,20,0,20">
+            <ItemsControl ItemsSource="{Binding AlarmTriggerEvents}" Style="{StaticResource ConsoleItemsControlStyle}" />
+        </ScrollViewer>
 
         <StackPanel Grid.Row="2" Margin="0,0,0,40">
             <Button Content="{Binding ToggleAlarmText}" Height="70" Width="150" HorizontalAlignment="Center" Background="{Binding IsAlarmEnabled, Converter={StaticResource ToggleAlarmBackgroundConverter}}" Command="{Binding AlarmToggleCommand}" />

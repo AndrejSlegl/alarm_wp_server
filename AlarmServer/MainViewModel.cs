@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Windows.UI.Xaml;
 using Windows.UI.Core;
+using System.Text;
 
 namespace AlarmServer
 {
@@ -268,7 +269,7 @@ namespace AlarmServer
         {
             Events.Insert(0, eventModel);
 
-            if (Events.Count > 100)
+            if (Events.Count > 200)
                 Events.RemoveAt(Events.Count - 1);
         }
 
@@ -280,27 +281,29 @@ namespace AlarmServer
                 AlarmTriggerEvents.RemoveAt(AlarmTriggerEvents.Count - 1);
         }
 
-        public void AddEvent(ValueChangeEvent valueChangeEvent)
+        void UpdateParameter(KeyValuePair<string, long> messageParameter)
         {
-            var parameter = GetParameter(valueChangeEvent.Name);
-
-            bool sector0Value = Sector0.BoolValue;
-            bool movement0Value = Movement0.BoolValue;
-
+            var parameter = GetParameter(messageParameter.Key);
+            
             if (parameter != null)
-                parameter.Update(valueChangeEvent.Value);
-
-            AddEvent((EventModel)valueChangeEvent);
+                parameter.Update(messageParameter.Value);
         }
 
         void AddIOTMessage(IIOTMessage message)
         {
-            var now = DateTime.Now;
+            var builder = new StringBuilder();
 
-            foreach(var parameter in message.LongParameters)
+            foreach (var parameter in message.LongParameters)
             {
-                AddEvent(new ValueChangeEvent(now, parameter.Key, parameter.Value));
+                UpdateParameter(parameter);
+
+                builder.Append(parameter.Key);
+                builder.Append(": ");
+                builder.Append(parameter.Value);
+                builder.Append(", ");
             }
+
+            AddEvent(new EventModel(DateTime.Now, builder.ToString().Trim(',', ' ')));
         }
 
         void StopAlarmSound()

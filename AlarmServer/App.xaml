@@ -26,13 +26,7 @@
             <Setter Property="FontSize" Value="16" />
         </Style>
 
-        <Style x:Key="ConsoleListViewStyle" TargetType="ListView">
-            <Setter Property="SelectionMode" Value="None" />
-            <Setter Property="ItemContainerTransitions">
-                <Setter.Value>
-                    <TransitionCollection />
-                </Setter.Value>
-            </Setter>
+        <Style x:Key="ConsoleItemsControlStyle" TargetType="ItemsControl">
             <Setter Property="ItemTemplate">
                 <Setter.Value>
                     <DataTemplate>
@@ -40,19 +34,11 @@
                     </DataTemplate>
                 </Setter.Value>
             </Setter>
-            <Setter Property="ItemContainerStyle">
+            <Setter Property="ItemsPanel">
                 <Setter.Value>
-                    <Style TargetType="ListViewItem">
-                        <Setter Property="Margin" Value="0,0,0,5" />
-                        <Setter Property="Padding" Value="0" />
-                        <Setter Property="Template">
-                            <Setter.Value>
-                                <ControlTemplate TargetType="ListViewItem">
-                                    <ContentPresenter />
-                                </ControlTemplate>
-                            </Setter.Value>
-                        </Setter>
-                    </Style>
+                    <ItemsPanelTemplate>
+                        <ItemsStackPanel ItemsUpdatingScrollMode="KeepItemsInView" />
+                    </ItemsPanelTemplate>
                 </Setter.Value>
             </Setter>
         </Style>
