@@ -22,6 +22,8 @@ namespace AlarmServer
 
         public bool DisableUIColor { get; set; }
 
+        public long LongValue { get { return v; } }
+
         public bool BoolValue
         {
             get { return boolValue; }

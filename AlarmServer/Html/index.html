@@ -14,11 +14,44 @@
         }
 
         p {
-            font-size: 46px;
+            font-size: 40px;
         }
 
         button {
-            font-size: 56px;
+            font-size: 40px;
+            padding: 15px;
+        }
+
+        td {
+            padding-right: 20px;
+        }
+
+        #parametersTable {
+            font-size: 46px;
+        }
+
+        .blackText {
+            color:black;
+        }
+
+        .greenText {
+            color:green;
+        }
+
+        .redText {
+            color:red;
+        }
+
+        .redBackground {
+            background-color:red;
+        }
+
+        .greenBackground {
+            background-color:green;
+        }
+
+        .noneBackground {
+            background-color:none;
         }
     </style>
 
@@ -53,29 +86,82 @@
             sendUIWebRequest({}, null);
         }
 
-        function toggleAlarmOn() {
-            var request = {
-                alarmOn:false
-            };
+        function setAlarmEnabled(alarmOn) {
+            sendUIWebRequest({ alarmOn: alarmOn }, null);
+        }
 
-            if (lastUIResponse) {
-                request.alarmOn = !lastUIResponse.alarmOn;
-            }
-
-            sendUIWebRequest(request, null);
+        function setSirenOn(sirenOn) {
+            sendUIWebRequest({ sirenOn: sirenOn }, null);
         }
 
         function updatePageState(response) {
-            document.getElementById("toggleAlarmButton").innerHTML = response.alarmOn ? "Turn Off" : "Turn On";
-            document.getElementById("sector0Par").innerHTML = "sector0   " + response.sector0BoolValue;
+            document.getElementById("parametersTable").hidden = false;
+            document.getElementById("sector0ValueCell").innerHTML = response.sector0Value;
+            document.getElementById("movement0ValueCell").innerHTML = response.movement0Value;
+            document.getElementById("rssiValueCell").innerHTML = response.rssiValue;
+
+            document.getElementById("rssiValueRow").className = response.clientsConnected > 0 ? "greenText" : "blackText";
+
+            if(response.clientsConnected > 0) {
+                document.getElementById("sector0ValueRow").className = response.sector0Value > 0 ? "greenText" : "redText";
+                document.getElementById("movement0ValueRow").className = response.movement0Value > 0 ? "greenText" : "redText";
+            } else {
+                document.getElementById("sector0ValueRow").className = "blackText";
+                document.getElementById("movement0ValueRow").className = "blackText";
+            }
+
+            document.getElementById("alarmEnabledStatusContainer").className = response.alarmOn ? "greenBackground" : "redBackground";
+            document.getElementById("sirenOnStatusContainer").className = response.sirenOn ? "redBackground" : "noneBackground";
         }
     </script>
 </head>
 
 <body>
     <h1>Home Alarm</h1>
-    <p id="sector0Par">-</p>
-    <button onclick="toggleAlarmOn()" id="toggleAlarmButton">-</button>
+
+    <table id="parametersTable" hidden="hidden">
+        <tr id="rssiValueRow">
+            <td>rssi</td>
+            <td id="rssiValueCell"></td>
+        </tr>
+        <tr id="sector0ValueRow">
+            <td>sector0</td>
+            <td id="sector0ValueCell"></td>
+        </tr>
+        <tr id="movement0ValueRow">
+            <td>movement0</td>
+            <td id="movement0ValueCell"></td>
+        </tr>
+    </table>
+
+    <p></p>
+
+    <table>
+        <tr>
+            <td>
+                <button onclick="setSirenOn(false)" style="width:400px;height:100px;">STOP ALARM</button>
+            </td>
+            <td>
+                <div id="sirenOnStatusContainer" style="width:100px;height:100px;"></div>
+            </td>
+        </tr>
+    </table>
+
+    <p></p>
+
+    <table>
+        <tr>
+            <td>
+                <button onclick="setAlarmEnabled(true)" id="toggleAlarmButton">VKLOPI</button>
+            </td>
+            <td>
+                <button onclick="setAlarmEnabled(false)" id="toggleAlarmButton">UGASNI</button>
+            </td>
+            <td>
+                <div id="alarmEnabledStatusContainer" style="width:80px;height:80px;"></div>
+            </td>
+        </tr>
+    </table>
 </body>
 
 </html>

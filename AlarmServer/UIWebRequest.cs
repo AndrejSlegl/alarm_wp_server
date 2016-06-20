@@ -17,6 +17,9 @@ namespace AlarmServer
         [DataMember(Name = "alarmOn", EmitDefaultValue = false)]
         public bool? AlarmOn { get; set; }
 
+        [DataMember(Name = "sirenOn", EmitDefaultValue = false)]
+        public bool? SirenOn { get; set; }
+
         public static UIWebRequest Deserialize(Stream stream)
         {
             return (UIWebRequest)serializer.ReadObject(stream);

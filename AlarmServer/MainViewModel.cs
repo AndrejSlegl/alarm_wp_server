@@ -365,10 +365,22 @@ namespace AlarmServer
                 IsAlarmEnabled = request.AlarmOn.Value;
             }
 
+            if (request.SirenOn != null)
+            {
+                if (request.SirenOn.Value)
+                    System.Diagnostics.Debug.WriteLine("UIWebRequest.SirenOn");
+                else
+                    StopAlarmSound();
+            }
+
             return new UIWebResponse()
             {
                 AlarmOn = IsAlarmEnabled,
-                Sector0BoolValue = Sector0.BoolValue
+                Sector0Value = Sector0.LongValue,
+                Movement0Value = Movement0.LongValue,
+                RssiValue = Rssi.LongValue,
+                SirenOn = IsAlarmActive,
+                ClientsConnected = clients.Count
             };
         }
 
