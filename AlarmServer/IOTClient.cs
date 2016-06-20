@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.Networking;
 using Windows.Networking.Sockets;
+using Windows.Storage.Streams;
 
 namespace AlarmServer
 {
@@ -17,15 +18,15 @@ namespace AlarmServer
 
         public HostName RemoteAddress { get { return socket.Information.RemoteAddress; } }
 
-        StreamSocket socket { get; }
-        StreamWriter writer { get; }
-        StreamReader reader { get; }
+        readonly StreamSocket socket;
+        readonly DataWriter writer;
+        readonly StreamReader reader;
 
-        internal IOTClient(StreamSocket socket, StreamReader reader, StreamWriter writer)
+        internal IOTClient(StreamSocket socket)
         {
             this.socket = socket;
-            this.writer = writer;
-            this.reader = reader;
+            reader = new StreamReader(socket.InputStream.AsStreamForRead());
+            writer = new DataWriter(socket.OutputStream);
         }
 
         public async Task SendMessageAsync(IIOTMessage message)
@@ -50,8 +51,8 @@ namespace AlarmServer
                 }
             }
 
-            await writer.WriteAsync(builder.ToString());
-            await writer.FlushAsync();
+            writer.WriteString(builder.ToString());
+            await writer.StoreAsync();
         }
 
         internal async Task MessageLoop()

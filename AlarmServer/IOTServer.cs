@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Windows.Networking.Sockets;
@@ -44,9 +43,7 @@ namespace AlarmServer
 
         async void HandleClientConnection(StreamSocket socket)
         {
-            var streamReader = new StreamReader(socket.InputStream.AsStreamForRead());
-            var streamWriter = new StreamWriter(socket.OutputStream.AsStreamForWrite());
-            var client = new IOTClient(socket, streamReader, streamWriter);
+            var client = new IOTClient(socket);
 
             lock (clientList)
             {
@@ -64,11 +61,10 @@ namespace AlarmServer
 
             await client.MessageLoop();
 
-            client.Dispose();
-
             lock (clientList)
             {
                 clientList.Remove(client);
+                client.Dispose();
             }
         }
 
