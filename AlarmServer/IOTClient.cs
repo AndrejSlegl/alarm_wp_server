@@ -15,17 +15,17 @@ namespace AlarmServer
         public event ClientMessageHandler MessageReceived;
         public event ClientErrorHandler ErrorOccured;
 
-        public HostName RemoteAddress { get { return Socket.Information.RemoteAddress; } }
+        public HostName RemoteAddress { get { return socket.Information.RemoteAddress; } }
 
-        internal StreamSocket Socket { get; }
-        internal StreamWriter Writer { get; }
-        internal StreamReader Reader { get; }
+        StreamSocket socket { get; }
+        StreamWriter writer { get; }
+        StreamReader reader { get; }
 
         internal IOTClient(StreamSocket socket, StreamReader reader, StreamWriter writer)
         {
-            Socket = socket;
-            Writer = writer;
-            Reader = reader;
+            this.socket = socket;
+            this.writer = writer;
+            this.reader = reader;
         }
 
         public async Task SendMessageAsync(IIOTMessage message)
@@ -50,8 +50,8 @@ namespace AlarmServer
                 }
             }
 
-            await Writer.WriteAsync(builder.ToString());
-            await Writer.FlushAsync();
+            await writer.WriteAsync(builder.ToString());
+            await writer.FlushAsync();
         }
 
         internal async Task MessageLoop()
@@ -84,7 +84,7 @@ namespace AlarmServer
 
         async Task<IIOTMessage> ParseRequestAsync()
         {
-            string requestString = await Reader.ReadLineAsync();
+            string requestString = await reader.ReadLineAsync();
 
             if (requestString == null)
                 throw new Exception("Connection closed");
@@ -118,9 +118,9 @@ namespace AlarmServer
 
         public void Dispose()
         {
-            Writer.Dispose();
-            Reader.Dispose();
-            Socket.Dispose();
+            writer.Dispose();
+            reader.Dispose();
+            socket.Dispose();
         }
     }
 }

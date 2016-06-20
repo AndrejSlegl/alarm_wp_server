@@ -50,10 +50,10 @@ namespace AlarmServer
 
             lock (clientList)
             {
-                var existingClient = clientList.FirstOrDefault(c => c.Socket.Information.RemoteAddress.Equals(socket.Information.RemoteAddress));
+                var existingClient = clientList.FirstOrDefault(c => c.RemoteAddress.Equals(socket.Information.RemoteAddress));
                 if (existingClient != null)
                 {
-                    existingClient.Socket.Dispose();
+                    existingClient.Dispose();
                     clientList.Remove(existingClient);
                 }
 
