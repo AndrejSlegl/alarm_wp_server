@@ -3,14 +3,28 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using Windows.UI.Xaml;
+using Windows.UI.Core;
 
 namespace AlarmServer
 {
     public class MainViewModel : ModelBase
     {
+        class IOTClientUIInfo
+        {
+            public DateTime LastResponseTime { get; set; }
+        }
+
+        const string statusQuery = "status?";
+        const string stopSirenText = "stopSiren!";
+        const string sirenActivatedText = "sirenActivated";
+
         readonly Uri alarmSoundUri = new Uri("ms-appx:///Audio/Tornado_Siren_II-Delilah-747233690.mp3");
         readonly DispatcherTimer stopAlarmTimer = new DispatcherTimer() { Interval = TimeSpan.FromMinutes(10) };
-        int numConnections;
+        readonly IIOTServer iotServer;
+        readonly CoreDispatcher dispatcher;
+        readonly Dictionary<IIOTClient, IOTClientUIInfo> clients = new Dictionary<IIOTClient, IOTClientUIInfo>();
+        readonly DispatcherTimer timer = new DispatcherTimer();
+        int clientPingInterval = 60;
         bool isConnected;
         bool isAlarmEnabled = true;
         Uri alarmSoundSource;
@@ -26,16 +40,44 @@ namespace AlarmServer
         public SensorValueModel Movement0 { get; }
         public SensorValueModel DisconnectCount { get; }
 
-        public bool IsConnected { get { return isConnected; } private set { if (isConnected == value) return; isConnected = value; RaisePropertyChanged(nameof(IsConnected)); } }
+        public bool IsConnected
+        {
+            get { return isConnected; }
+            private set
+            {
+                if (isConnected == value)
+                    return;
 
-        public Uri AlarmSoundSource { get { return alarmSoundSource; } private set { alarmSoundSource = value; RaisePropertyChanged(nameof(AlarmSoundSource)); } }
+                isConnected = value;
+                RaisePropertyChanged(nameof(IsConnected));
+                StatusQueryCommand.IsEnabled = isConnected;
+            }
+        }
+
+        public Uri AlarmSoundSource
+        {
+            get { return alarmSoundSource; }
+            private set
+            {
+                alarmSoundSource = value;
+                RaisePropertyChanged(nameof(AlarmSoundSource));
+                StopAlarmCommand.IsEnabled = alarmSoundSource != null;
+            }
+        }
 
         public bool IsAlarmEnabled { get { return isAlarmEnabled; } set { if (isAlarmEnabled == value) return; isAlarmEnabled = value; RaisePropertyChanged(nameof(IsAlarmEnabled)); RaisePropertyChanged(nameof(ToggleAlarmText)); } }
 
         public string ToggleAlarmText { get { return IsAlarmEnabled ? "UGASNI" : "VKLOPI"; } }
 
-        public MainViewModel()
+        public UICommand StopAlarmCommand { get; }
+        public UICommand AlarmToggleCommand { get; }
+        public UICommand StatusQueryCommand { get; }
+
+        public MainViewModel(CoreDispatcher dispatcher, IIOTServer iotServer)
         {
+            this.iotServer = iotServer;
+            this.dispatcher = dispatcher;
+
             Events = new ObservableCollection<EventModel>();
             AlarmTriggerEvents = new ObservableCollection<EventModel>();
 
@@ -54,11 +96,136 @@ namespace AlarmServer
                 Sector0,
                 Movement0
             };
+
+            StopAlarmCommand = new UICommand(StopAlarmSound, false);
+            AlarmToggleCommand = new UICommand(AlarmToggleAction, true);
+            StatusQueryCommand = new UICommand(QueryAllClientsStatus, false);
         }
 
-        private void StopAlarmTimer_Tick(object sender, object e)
+        public async void StartIOTServer()
+        {
+            iotServer.ClientConnected -= IotServer_ClientConnected;
+            iotServer.ClientConnected += IotServer_ClientConnected;
+
+            try
+            {
+                await iotServer.StartServerAsync();
+            }
+            catch(Exception ex)
+            {
+                AddEvent(ex);
+                return;
+            }
+
+            timer.Interval = TimeSpan.FromSeconds(clientPingInterval);
+            timer.Tick += Timer_Tick;
+            timer.Start();
+
+            AddEvent("Server started");
+        }
+
+        private void IotServer_ClientConnected(IIOTServer server, IIOTClient client)
+        {
+            client.MessageReceived += Client_MessageReceived;
+            client.ErrorOccured += Client_ErrorOccured;
+            client.Disconnected += Client_Disconnected;
+
+            Dispatch(() =>
+            {
+                clients.Add(client, new IOTClientUIInfo() { LastResponseTime = DateTime.Now });
+                SendMessageSafe(client, new IOTMessage(new Dictionary<string, long> { { sirenActivatedText, IsAlarmEnabled ? 1 : 0 } }, new string[] { statusQuery }));
+
+                IsConnected = clients.Count > 0;
+
+                AddEvent("New Connection " + client.RemoteAddress.ToString(), EventType.NewConnection);
+            });
+        }
+
+        private void Client_Disconnected(IIOTClient client, Exception error)
+        {
+            client.MessageReceived -= Client_MessageReceived;
+            client.ErrorOccured -= Client_ErrorOccured;
+            client.Disconnected -= Client_Disconnected;
+
+            Dispatch(() =>
+            {
+                clients.Remove(client);
+                IsConnected = clients.Count > 0;
+
+                if (error != null)
+                    AddEvent(error);
+
+                if (!IsConnected)
+                {
+                    DisconnectCount.Increment();
+                    Rssi.Reset();
+                }
+            });
+        }
+
+        private void Client_ErrorOccured(IIOTClient client, Exception error)
+        {
+            Dispatch(() => AddEvent(error));
+        }
+
+        private void Client_MessageReceived(IIOTClient client, IIOTMessage message)
+        {
+            Dispatch(() =>
+            {
+                var data = clients[client];
+                data.LastResponseTime = DateTime.Now;
+                AddIOTMessage(message);
+            });
+        }
+
+        async void SendMessageSafe(IIOTClient client, IIOTMessage message)
+        {
+            try
+            {
+                await client.SendMessageAsync(message);
+            }
+            catch(Exception ex)
+            {
+                AddEvent(ex);
+            }
+        }
+
+        void SendMessageToAllSafe(IIOTMessage message)
+        {
+            foreach(var client in clients.Keys)
+            {
+                SendMessageSafe(client, message);
+            }
+        }
+
+        async void Dispatch(DispatchedHandler agileCallback)
+        {
+            await dispatcher.RunAsync(CoreDispatcherPriority.Normal, agileCallback);
+        }
+
+        void Timer_Tick(object sender, object e)
+        {
+            foreach (var entry in clients)
+            {
+                if ((DateTime.Now - entry.Value.LastResponseTime).TotalSeconds > clientPingInterval * 2)
+                {
+                    entry.Key.Dispose(); // close connection if no response received for some time
+                }
+                else
+                {
+                    SendMessageSafe(entry.Key, new IOTMessage(new string[] { statusQuery }));
+                }
+            }
+        }
+
+        void StopAlarmTimer_Tick(object sender, object e)
         {
             StopAlarmSound();
+        }
+
+        void QueryAllClientsStatus()
+        {
+            SendMessageToAllSafe(new IOTMessage(new string[] { statusQuery }));
         }
 
         public void AddEvent(string text)
@@ -105,44 +272,30 @@ namespace AlarmServer
             AddEvent((EventModel)valueChangeEvent);
         }
 
-        public void AddClientMessage(ClientMessage clientMessage)
+        void AddIOTMessage(IIOTMessage message)
         {
-            foreach(var ev in clientMessage.Events)
+            var now = DateTime.Now;
+
+            foreach(var parameter in message.LongParameters)
             {
-                AddEvent(ev);
+                AddEvent(new ValueChangeEvent(now, parameter.Key, parameter.Value));
             }
         }
 
-        public void ClientConnected()
-        {
-            if (numConnections == 0)
-                IsConnected = true;
-
-            numConnections++;
-        }
-
-        public void ClientDisconnected()
-        {
-            numConnections--;
-
-            if (numConnections == 0)
-            {
-                IsConnected = false;
-                DisconnectCount.Increment();
-                Rssi.Reset();
-            }
-        }
-
-        public void StopAlarmSound()
+        void StopAlarmSound()
         {
             AlarmSoundSource = null;
             stopAlarmTimer.Tick -= StopAlarmTimer_Tick;
             stopAlarmTimer.Stop();
+
+            SendMessageToAllSafe(new IOTMessage(new string[] { stopSirenText }));
         }
 
-        public void AlarmToggleButtonClick()
+        void AlarmToggleAction()
         {
             IsAlarmEnabled = !IsAlarmEnabled;
+
+            SendMessageToAllSafe(new IOTMessage(new Dictionary<string, long> { { sirenActivatedText, IsAlarmEnabled ? 1 : 0 } }));
         }
 
         void TriggerAlarm(SensorValueModel sensorValue)

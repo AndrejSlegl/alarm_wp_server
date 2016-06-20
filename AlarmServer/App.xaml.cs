@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Runtime.Serialization.Json;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
-using Windows.Devices.Geolocation;
 using Windows.Storage;
 using Windows.System.Display;
 using Windows.UI.Core;
@@ -24,14 +21,15 @@ namespace AlarmServer
     /// </summary>
     public sealed partial class App : Application
     {
-        private Geolocator locator;
         DisplayRequest displayRequest = new DisplayRequest();
         private TransitionCollection transitions;
         
-        public readonly MainViewModel MainModel;
+        public MainViewModel MainModel { get { return mainModel; } }
         readonly Uri indexWebPageUri = new Uri("ms-appx:///Html/index.html");
+        readonly IOTServer iotServer;
         readonly WebServer webServer;
-        Frame frame;
+        MainViewModel mainModel;
+        CoreDispatcher dispatcher;
 
         /// <summary>
         /// Initializes the singleton application object.  This is the first line of authored code
@@ -42,16 +40,7 @@ namespace AlarmServer
             this.InitializeComponent();
             this.Suspending += this.OnSuspending;
 
-            MainModel = new MainViewModel();
-
-            locator = new Geolocator()
-            {
-                DesiredAccuracy = PositionAccuracy.High,
-                ReportInterval = 1000,
-                MovementThreshold = 1,
-                DesiredAccuracyInMeters = 1
-            };
-
+            iotServer = new IOTServer("43254");
             webServer = new WebServer(HandleHttpRequest, "42564");
         }
 
@@ -70,18 +59,20 @@ namespace AlarmServer
             }
 #endif
 
-            //locator.StatusChanged += Locator_StatusChanged;
-            //locator.PositionChanged += Locator_PositionChanged;
-
             Frame rootFrame = Window.Current.Content as Frame;
 
             // Do not repeat app initialization when the Window already has content,
             // just ensure that the window is active
             if (rootFrame == null)
             {
+                dispatcher = Window.Current.Dispatcher;
+                mainModel = new MainViewModel(dispatcher, iotServer);
+
+                mainModel.StartIOTServer();
+                webServer.StartServer();
+
                 // Create a Frame to act as the navigation context and navigate to the first page
                 rootFrame = new Frame();
-                frame = rootFrame;
 
                 // TODO: change this value to a cache size that is appropriate for your application
                 rootFrame.CacheSize = 1;
@@ -98,7 +89,6 @@ namespace AlarmServer
 
                 // Place the frame in the current Window
                 Window.Current.Content = rootFrame;
-                Window.Current.VisibilityChanged += Current_VisibilityChanged;
             }
 
             if (rootFrame.Content == null)
@@ -127,26 +117,6 @@ namespace AlarmServer
 
             // Ensure the current window is active
             Window.Current.Activate();
-
-            webServer.StartServer();
-        }
-
-        private void Current_VisibilityChanged(object sender, Windows.UI.Core.VisibilityChangedEventArgs e)
-        {
-            Debug.WriteLine("VisibilityChanged: " + e.Visible);
-            
-            //locator.StatusChanged -= Locator_StatusChanged;
-            //locator.PositionChanged -= Locator_PositionChanged;
-
-            if (e.Visible)
-            {
-                
-            }
-            else
-            {
-                //locator.StatusChanged += Locator_StatusChanged;
-                //locator.PositionChanged += Locator_PositionChanged;
-            }
         }
 
         /// <summary>
@@ -176,19 +146,8 @@ namespace AlarmServer
             deferral.Complete();
         }
 
-        private void Locator_StatusChanged(Geolocator sender, StatusChangedEventArgs args)
-        {
-            Debug.WriteLine("Locator_StatusChanged: " + args.Status);
-        }
-
-        private void Locator_PositionChanged(Geolocator sender, PositionChangedEventArgs args)
-        {
-            Debug.WriteLine("Locator_PositionChanged: " + args.Position.Coordinate);
-        }
-
         private async Task<UIWebResponse> HandleUIRequestAsync(UIWebRequest request)
         {
-            var dispatcher = frame?.Dispatcher;
             if (dispatcher == null)
                 throw new Exception("No dispacher");
 

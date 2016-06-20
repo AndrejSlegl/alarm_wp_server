@@ -16,8 +16,8 @@
             <RowDefinition Height="80" />
         </Grid.RowDefinitions>
 
-        <StackPanel Margin="0,20,0,0">
-            <Button Content="query" x:Name="QueryButton" Click="QueryButton_Click" IsEnabled="{Binding IsConnected}" />
+        <StackPanel Margin="0,30,0,0">
+            <Button Content="query" Command="{Binding StatusQueryCommand}" />
         </StackPanel>
 
         <ListView ItemsSource="{Binding Events}" Grid.Row="1" Margin="0,20,0,0" Style="{StaticResource ConsoleListViewStyle}" />

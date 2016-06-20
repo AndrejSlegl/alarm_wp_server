@@ -4,9 +4,9 @@ namespace AlarmServer
 {
     public class SensorValueModel : ModelBase
     {
-        int v = 0;
-        int min = int.MaxValue;
-        int max = int.MinValue;
+        long v = 0;
+        long min = long.MaxValue;
+        long max = long.MinValue;
         bool boolValue;
         string value = "-";
         string minValue = "-";
@@ -44,7 +44,7 @@ namespace AlarmServer
             this.triggerAlarmAction = triggerAlarmAction;
         }
 
-        public void Update(int value)
+        public void Update(long value)
         {
             v = value;
             Value = value.ToString();
@@ -105,7 +105,7 @@ namespace AlarmServer
             UIColor = boolValue == triggerAlarmValue ? UIColorValue.Red : UIColorValue.Green;
         }
 
-        static bool DefaultBoolValueSetter(int val)
+        static bool DefaultBoolValueSetter(long val)
         {
             return val != 0;
         }

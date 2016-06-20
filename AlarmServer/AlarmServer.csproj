@@ -87,7 +87,6 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="BoolConverter.cs" />
-    <Compile Include="ClientMessage.cs" />
     <Compile Include="ConsoleControl.xaml.cs">
       <DependentUpon>ConsoleControl.xaml</DependentUpon>
     </Compile>
@@ -96,6 +95,12 @@
     <Compile Include="EventType.cs" />
     <Compile Include="EventTypeToBrushConverter.cs" />
     <Compile Include="ExceptionEvent.cs" />
+    <Compile Include="IIOTClient.cs" />
+    <Compile Include="IIOTMessage.cs" />
+    <Compile Include="IIOTServer.cs" />
+    <Compile Include="IOTClient.cs" />
+    <Compile Include="IOTMessage.cs" />
+    <Compile Include="IOTServer.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
@@ -105,6 +110,7 @@
     <Compile Include="SensorValueModel.cs" />
     <Compile Include="UIColorToBrushConverter.cs" />
     <Compile Include="UIColorValue.cs" />
+    <Compile Include="UICommand.cs" />
     <Compile Include="UIWebRequest.cs" />
     <Compile Include="UIWebResponse.cs" />
     <Compile Include="ValueChangeEvent.cs" />
