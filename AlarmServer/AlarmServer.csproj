@@ -88,9 +88,6 @@
     </Compile>
     <Compile Include="AudioPlayer.cs" />
     <Compile Include="BoolConverter.cs" />
-    <Compile Include="ConsoleControl.xaml.cs">
-      <DependentUpon>ConsoleControl.xaml</DependentUpon>
-    </Compile>
     <Compile Include="Ext.cs" />
     <Compile Include="EventModel.cs" />
     <Compile Include="EventType.cs" />
@@ -103,8 +100,8 @@
     <Compile Include="IOTClient.cs" />
     <Compile Include="IOTMessage.cs" />
     <Compile Include="IOTServer.cs" />
-    <Compile Include="MainPage.xaml.cs">
-      <DependentUpon>MainPage.xaml</DependentUpon>
+    <Compile Include="Views\MainView.xaml.cs">
+      <DependentUpon>MainView.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainViewModel.cs" />
     <Compile Include="ModelBase.cs" />
@@ -115,6 +112,9 @@
     <Compile Include="UICommand.cs" />
     <Compile Include="UIWebRequest.cs" />
     <Compile Include="UIWebResponse.cs" />
+    <Compile Include="Views\ConsoleView.xaml.cs">
+      <DependentUpon>ConsoleView.xaml</DependentUpon>
+    </Compile>
     <Compile Include="WebServer.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -137,13 +137,13 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="ConsoleControl.xaml">
-      <SubType>Designer</SubType>
+    <Page Include="Views\MainView.xaml">
       <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
     </Page>
-    <Page Include="MainPage.xaml">
-      <Generator>MSBuild:Compile</Generator>
+    <Page Include="Views\ConsoleView.xaml">
       <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '12.0' ">

@@ -4,6 +4,7 @@ using System.IO;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
+using Windows.Phone.UI.Input;
 using Windows.Storage;
 using Windows.System.Display;
 using Windows.UI.Core;
@@ -86,9 +87,9 @@ namespace AlarmServer
                 }
 
                 displayRequest.RequestActive();
-
-                // Place the frame in the current Window
+                
                 Window.Current.Content = rootFrame;
+                HardwareButtons.BackPressed += HardwareButtons_BackPressed;
             }
 
             if (rootFrame.Content == null)
@@ -109,7 +110,7 @@ namespace AlarmServer
                 // When the navigation stack isn't restored navigate to the first page,
                 // configuring the new page by passing required information as a navigation
                 // parameter
-                if (!rootFrame.Navigate(typeof(MainPage), e.Arguments))
+                if (!rootFrame.Navigate(typeof(Views.MainView), e.Arguments))
                 {
                     throw new Exception("Failed to create initial page");
                 }
@@ -117,6 +118,20 @@ namespace AlarmServer
 
             // Ensure the current window is active
             Window.Current.Activate();
+        }
+
+        private void HardwareButtons_BackPressed(object sender, BackPressedEventArgs e)
+        {
+            var frame = Window.Current.Content as Frame;
+
+            if (frame == null)
+                return;
+
+            if (frame.CanGoBack)
+            {
+                e.Handled = true;
+                frame.GoBack();
+            }
         }
 
         /// <summary>
