@@ -60,7 +60,7 @@ namespace AlarmServer
             {
                 BoolValue = boolValue;
 
-                if (boolValue == triggerAlarmValue && triggerAlarmAction != null && alarmTriggerEnabled)
+                if (boolValue == triggerAlarmValue && triggerAlarmAction != null)
                 {
                     triggerAlarmAction(this);
                 }

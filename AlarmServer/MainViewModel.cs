@@ -342,9 +342,11 @@ namespace AlarmServer
 
         void TriggerAlarm(SensorValueModel sensorValue)
         {
-            StartAlarmSound();
-
-            AddAlarmTriggerEvent(new EventModel(DateTime.Now, sensorValue.ParameterName));
+            if (IsAlarmEnabled && sensorValue.AlarmTriggerEnabled)
+            {
+                StartAlarmSound();
+                AddAlarmTriggerEvent(new EventModel(DateTime.Now, sensorValue.ParameterName));
+            }
         }
 
         void StartAlarmSound()
