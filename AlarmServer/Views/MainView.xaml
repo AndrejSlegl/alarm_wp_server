@@ -12,7 +12,7 @@
     <Page.Resources>
         <root:BoolConverter x:Key="BoolConverter" TrueValue="True" FalseValue="False" />
         <root:BoolConverter x:Key="BoolToColorConverter" TrueValue="Green" FalseValue="Red" />
-        <root:BoolConverter x:Key="StopAlarmBackgroundConverter" TrueValue="Red" FalseValue="Black" />
+        <root:BoolConverter x:Key="StopAlarmBackgroundConverter" TrueValue="Red" FalseValue="Transparent" />
         <root:BoolConverter x:Key="ToggleAlarmBackgroundConverter" TrueValue="Green" FalseValue="Red" />
     </Page.Resources>
 

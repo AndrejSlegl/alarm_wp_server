@@ -29,7 +29,7 @@ namespace AlarmServer
         bool isConnected;
         bool isAlarmEnabled = true;
         bool isAlarmActive;
-        
+
         public ObservableCollection<EventModel> Events { get; }
 
         public ObservableCollection<EventModel> AlarmTriggerEvents { get; }
@@ -53,6 +53,7 @@ namespace AlarmServer
                 RaisePropertyChanged(nameof(IsConnected));
                 StatusQueryCommand.IsEnabled = isConnected;
                 CloseAllConnectionsCommand.IsEnabled = isConnected;
+                ToggleSirenCommand.IsEnabled = isConnected;
             }
         }
 
@@ -90,6 +91,7 @@ namespace AlarmServer
         public UICommand AlarmToggleCommand { get; }
         public UICommand StatusQueryCommand { get; }
         public UICommand CloseAllConnectionsCommand { get; }
+        public UICommand ToggleSirenCommand { get; }
 
         public MainViewModel(CoreDispatcher dispatcher, IIOTServer iotServer, IAudioPlayer audioPlayer)
         {
@@ -120,6 +122,7 @@ namespace AlarmServer
             AlarmToggleCommand = new UICommand(AlarmToggleAction, true);
             StatusQueryCommand = new UICommand(QueryAllClientsStatus, false);
             CloseAllConnectionsCommand = new UICommand(CloseAllConnections, false);
+            ToggleSirenCommand = new UICommand(ToggleSiren, false);
         }
 
         public async void StartIOTServer()
@@ -131,7 +134,7 @@ namespace AlarmServer
             {
                 await iotServer.StartServerAsync();
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 AddEvent(ex);
                 return;
@@ -206,7 +209,7 @@ namespace AlarmServer
             {
                 await client.SendMessageAsync(message);
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 AddEvent(ex);
             }
@@ -214,7 +217,7 @@ namespace AlarmServer
 
         void SendMessageToAllSafe(IIOTMessage message)
         {
-            foreach(var client in clients.Keys)
+            foreach (var client in clients.Keys)
             {
                 SendMessageSafe(client, message);
             }
@@ -284,7 +287,7 @@ namespace AlarmServer
         void UpdateParameter(KeyValuePair<string, long> messageParameter)
         {
             var parameter = GetParameter(messageParameter.Key);
-            
+
             if (parameter != null)
                 parameter.Update(messageParameter.Value);
         }
@@ -310,12 +313,18 @@ namespace AlarmServer
         {
             if (!IsAlarmActive)
                 return;
-            
+
             stopAlarmTimer.Tick -= StopAlarmTimer_Tick;
             stopAlarmTimer.Stop();
 
             audioPlayer.Stop();
             IsAlarmActive = false;
+            SendMessageToAllSafe(new IOTMessage(CreateSirenOnParameter()));
+        }
+
+        void ToggleSiren()
+        {
+            IsAlarmActive = !IsAlarmActive;
             SendMessageToAllSafe(new IOTMessage(CreateSirenOnParameter()));
         }
 
