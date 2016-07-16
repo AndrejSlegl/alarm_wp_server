@@ -1,0 +1,24 @@
+﻿<Page
+    x:Class="AlarmServer.Views.AlarmSettingsView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:AlarmServer.Views"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d"
+    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <Grid Margin="10,30,10,0">
+        <StackPanel>
+            <TextBlock Text="ALARM TRIGGERS" FontSize="20" />
+            <ItemsControl ItemsSource="{Binding AlarmTriggers}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <ToggleSwitch OffContent="{Binding ParameterName}" OnContent="{Binding ParameterName}" IsOn="{Binding AlarmTriggerEnabled, Mode=TwoWay}" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </StackPanel>
+        
+    </Grid>
+</Page>

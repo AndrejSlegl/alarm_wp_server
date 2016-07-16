@@ -12,13 +12,16 @@ namespace AlarmServer
         string minValue = "-";
         string maxValue = "-";
         UIColorValue uiColor = UIColorValue.None;
+        bool alarmTriggerEnabled = true;
         readonly bool triggerAlarmValue;
         readonly Action<SensorValueModel> triggerAlarmAction;
 
         public string ParameterName { get; }
-        public string Value { get { return value; } private set { if (value == this.value) return; this.value = value; RaisePropertyChanged(nameof(Value)); UpdateUIColorValue(); } }
+        public string Value { get { return value; } private set { if (value == this.value) return; this.value = value; RaisePropertyChanged(nameof(Value)); } }
         public string MinValue { get { return minValue; } private set { if (minValue == value) return; minValue = value; RaisePropertyChanged(nameof(MinValue)); } }
         public string MaxValue { get { return maxValue; } private set { if (maxValue == value) return; maxValue = value; RaisePropertyChanged(nameof(MaxValue)); } }
+
+        public bool AlarmTriggerEnabled { get { return alarmTriggerEnabled; } set { if (alarmTriggerEnabled == value) return; alarmTriggerEnabled = value; RaisePropertyChanged(nameof(AlarmTriggerEnabled)); } }
 
         public bool DisableUIColor { get; set; }
 
@@ -57,7 +60,7 @@ namespace AlarmServer
             {
                 BoolValue = boolValue;
 
-                if (boolValue == triggerAlarmValue && triggerAlarmAction != null)
+                if (boolValue == triggerAlarmValue && triggerAlarmAction != null && alarmTriggerEnabled)
                 {
                     triggerAlarmAction(this);
                 }

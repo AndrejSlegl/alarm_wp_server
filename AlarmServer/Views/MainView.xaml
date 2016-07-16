@@ -18,7 +18,8 @@
 
     <Page.BottomAppBar>
         <CommandBar>
-            <AppBarButton Icon="Bookmarks" Label="console" x:Name="OpenConsoleBtn" Click="OpenConsoleBtn_Click" />
+            <AppBarButton Icon="Bookmarks" Label="Console" Click="OpenConsoleBtn_Click" />
+            <AppBarButton Icon="Setting" Label="Settings" Click="OpenSettingsButton_Click" />
         </CommandBar>
     </Page.BottomAppBar>
 

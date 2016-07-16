@@ -35,6 +35,7 @@ namespace AlarmServer
         public ObservableCollection<EventModel> AlarmTriggerEvents { get; }
 
         public List<SensorValueModel> Parameters { get; }
+        public List<SensorValueModel> AlarmTriggers { get; }
 
         public SensorValueModel Rssi { get; }
         public SensorValueModel Sector0 { get; }
@@ -114,6 +115,12 @@ namespace AlarmServer
             Parameters = new List<SensorValueModel>
             {
                 Rssi,
+                Sector0,
+                Movement0
+            };
+
+            AlarmTriggers = new List<SensorValueModel>
+            {
                 Sector0,
                 Movement0
             };
