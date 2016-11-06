@@ -28,6 +28,12 @@
 
         #parametersTable {
             font-size: 46px;
+            font-family: Consolas;
+        }
+
+        #triggersTable {
+            font-size: 40px;
+            font-family: Consolas;
         }
 
         .blackText {
@@ -112,6 +118,23 @@
 
             document.getElementById("alarmEnabledStatusContainer").className = response.alarmOn ? "greenBackground" : "redBackground";
             document.getElementById("sirenOnStatusContainer").className = response.sirenOn ? "redBackground" : "noneBackground";
+
+            updateTriggersTable(response);
+        }
+
+        function updateTriggersTable(response) {
+            var table = document.getElementById("triggersTable");
+
+            while (table.rows.length > 0) {
+                table.deleteRow(0);
+            }
+
+            for(i = 0; i < response.alarmTriggerEvents.length; i++) {
+                var row = table.insertRow(-1);
+                var cell = row.insertCell(-1);
+                var ev = response.alarmTriggerEvents[i];
+                cell.innerHTML = ev.description;
+            }
         }
     </script>
 </head>
@@ -162,6 +185,10 @@
             </td>
         </tr>
     </table>
+
+    <p></p>
+
+    <table id="triggersTable"></table>
 </body>
 
 </html>

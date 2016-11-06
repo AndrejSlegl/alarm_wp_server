@@ -391,6 +391,11 @@ namespace AlarmServer
                     StopAlarmSound();
             }
 
+            var alarmTriggerEvents = AlarmTriggerEvents.Take(10).Select(model =>
+            {
+                return new UIWebResponseEvent() { Description = model.Description };
+            }).ToList();
+
             return new UIWebResponse()
             {
                 AlarmOn = IsAlarmEnabled,
@@ -398,7 +403,8 @@ namespace AlarmServer
                 Movement0Value = Movement0.LongValue,
                 RssiValue = Rssi.LongValue,
                 SirenOn = IsAlarmActive,
-                ClientsConnected = clients.Count
+                ClientsConnected = clients.Count,
+                AlarmTriggerEvents = alarmTriggerEvents
             };
         }
 

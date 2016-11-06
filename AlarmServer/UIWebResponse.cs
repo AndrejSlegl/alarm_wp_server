@@ -1,14 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AlarmServer
 {
+    [DataContract]
+    public class UIWebResponseEvent
+    {
+        [DataMember(Name = "description")]
+        public string Description { get; set; }
+    }
+
     [DataContract]
     public class UIWebResponse
     {
@@ -31,6 +34,9 @@ namespace AlarmServer
 
         [DataMember(Name = "sirenOn")]
         public bool SirenOn { get; set; }
+
+        [DataMember(Name = "alarmTriggerEvents")]
+        public List<UIWebResponseEvent> AlarmTriggerEvents { get; set; }
 
         public void Serialize(Stream stream)
         {
