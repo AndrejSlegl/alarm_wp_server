@@ -20,6 +20,9 @@ namespace AlarmServer
         [DataMember(Name = "alarmOn")]
         public bool AlarmOn { get; set; }
 
+        [DataMember(Name = "sector0TriggerEnabled")]
+        public bool Sector0TriggerEnabled { get; set; }
+
         [DataMember(Name = "sector0Value")]
         public long Sector0Value { get; set; }
 

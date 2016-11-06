@@ -391,6 +391,11 @@ namespace AlarmServer
                     StopAlarmSound();
             }
 
+            if (request.Sector0TriggerEnabled != null)
+            {
+                Sector0.AlarmTriggerEnabled = request.Sector0TriggerEnabled.Value;
+            }
+
             var alarmTriggerEvents = AlarmTriggerEvents.Take(10).Select(model =>
             {
                 return new UIWebResponseEvent() { Description = model.Description };
@@ -399,6 +404,7 @@ namespace AlarmServer
             return new UIWebResponse()
             {
                 AlarmOn = IsAlarmEnabled,
+                Sector0TriggerEnabled = Sector0.AlarmTriggerEnabled,
                 Sector0Value = Sector0.LongValue,
                 Movement0Value = Movement0.LongValue,
                 RssiValue = Rssi.LongValue,

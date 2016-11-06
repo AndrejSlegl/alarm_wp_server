@@ -20,6 +20,12 @@
         button {
             font-size: 40px;
             padding: 15px;
+            display: block;
+        }
+
+        button.small {
+            font-size: 24px;
+            padding: 6px;
         }
 
         td {
@@ -96,6 +102,10 @@
             sendUIWebRequest({ alarmOn: alarmOn }, null);
         }
 
+        function setSector0TriggerEnabled(enabled) {
+            sendUIWebRequest({ sector0TriggerEnabled: enabled }, null);
+        }
+
         function setSirenOn(sirenOn) {
             sendUIWebRequest({ sirenOn: sirenOn }, null);
         }
@@ -117,6 +127,7 @@
             }
 
             document.getElementById("alarmEnabledStatusContainer").className = response.alarmOn ? "greenBackground" : "redBackground";
+            document.getElementById("sector0EnabledStatusContainer").className = response.sector0TriggerEnabled ? "greenBackground" : "redBackground";
             document.getElementById("sirenOnStatusContainer").className = response.sirenOn ? "redBackground" : "noneBackground";
 
             updateTriggersTable(response);
@@ -145,11 +156,20 @@
     <table id="parametersTable" hidden="hidden">
         <tr id="rssiValueRow">
             <td>rssi</td>
-            <td id="rssiValueCell"></td>
+            <td id="rssiValueCell" style="width:100px;"></td>
         </tr>
         <tr id="sector0ValueRow">
             <td>sector0</td>
             <td id="sector0ValueCell"></td>
+            <td>
+                <button onclick="setSector0TriggerEnabled(true)" class="small">VKLOPI</button>
+            </td>
+            <td>
+                <button onclick="setSector0TriggerEnabled(false)" class="small">UGASNI</button>
+            </td>
+            <td>
+                <div id="sector0EnabledStatusContainer" style="width:40px;height:40px;border-radius:20px;"></div>
+            </td>
         </tr>
         <tr id="movement0ValueRow">
             <td>movement0</td>
@@ -175,10 +195,10 @@
     <table>
         <tr>
             <td>
-                <button onclick="setAlarmEnabled(true)" id="toggleAlarmButton">VKLOPI</button>
+                <button onclick="setAlarmEnabled(true)">VKLOPI</button>
             </td>
             <td>
-                <button onclick="setAlarmEnabled(false)" id="toggleAlarmButton">UGASNI</button>
+                <button onclick="setAlarmEnabled(false)">UGASNI</button>
             </td>
             <td>
                 <div id="alarmEnabledStatusContainer" style="width:80px;height:80px;border-radius:40px;"></div>

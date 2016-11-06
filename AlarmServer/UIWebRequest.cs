@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Json;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace AlarmServer
 {
@@ -19,6 +14,9 @@ namespace AlarmServer
 
         [DataMember(Name = "sirenOn", EmitDefaultValue = false)]
         public bool? SirenOn { get; set; }
+
+        [DataMember(Name = "sector0TriggerEnabled", EmitDefaultValue = false)]
+        public bool? Sector0TriggerEnabled { get; set; }
 
         public static UIWebRequest Deserialize(Stream stream)
         {
