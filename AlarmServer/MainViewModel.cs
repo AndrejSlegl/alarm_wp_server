@@ -327,12 +327,14 @@ namespace AlarmServer
             audioPlayer.Stop();
             IsAlarmActive = false;
             SendMessageToAllSafe(new IOTMessage(CreateSirenOnParameter()));
+            SendSirenOnMessageToAlarmUIClients();
         }
 
         void ToggleSiren()
         {
             IsAlarmActive = !IsAlarmActive;
             SendMessageToAllSafe(new IOTMessage(CreateSirenOnParameter()));
+            SendSirenOnMessageToAlarmUIClients();
         }
 
         void AlarmToggleAction()
@@ -346,6 +348,7 @@ namespace AlarmServer
             {
                 StartAlarmSound();
                 AddAlarmTriggerEvent(new EventModel(DateTime.Now, sensorValue.ParameterName));
+                SendSirenOnMessageToAlarmUIClients();
             }
         }
 
@@ -422,6 +425,26 @@ namespace AlarmServer
         Dictionary<string, long> CreateSirenOnParameter()
         {
             return new Dictionary<string, long> { { sirenOnText, IsAlarmActive ? 1 : 0 } };
+        }
+
+        private void SendSirenOnMessageToAlarmUIClients()
+        {
+            SendMessageToAlarmUIClients(sirenOnText + ":" + (IsAlarmActive ? "1" : "0"));
+        }
+
+        private async void SendMessageToAlarmUIClients(string message)
+        {
+            using (var connection = new UIClientConnection("192.168.1.112", "43542"))
+            {
+                try
+                {
+                    await connection.SendMessageAsync(message + "\n");
+                }
+                catch (Exception ex)
+                {
+                    AddEvent(ex);
+                }
+            }
         }
     }
 }

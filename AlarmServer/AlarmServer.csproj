@@ -100,6 +100,7 @@
     <Compile Include="IOTClient.cs" />
     <Compile Include="IOTMessage.cs" />
     <Compile Include="IOTServer.cs" />
+    <Compile Include="UIClientConnection.cs" />
     <Compile Include="Views\AlarmSettingsView.xaml.cs">
       <DependentUpon>AlarmSettingsView.xaml</DependentUpon>
     </Compile>
